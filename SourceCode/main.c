@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 	FILE *ifp, *ofp;
 	
 	//handle the cmd arguments
-	cmdArgs(argc, argv);
+	cmdArgs(argc, argv, *ifp, *ofp);
 	
 
 	return 0;
