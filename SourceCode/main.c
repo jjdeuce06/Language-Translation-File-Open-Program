@@ -26,7 +26,7 @@
 
 int main(int argc, char *argv[]) {
 
-	int status = -1;
+	FILE_STATUS status = FILE_CONTINUE;
 	
 	
 	header();
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         status = twoArg(argv[1], argv[2]);
 	}
 	
-	if (status == FILE_QUIT){
+	if (status == FILE_QUIT){ //decides to run program or not
 		printf("Program Terminated\n");
 		return 0;
 	}
@@ -76,7 +76,16 @@ int main(int argc, char *argv[]) {
     	printf("Output file opened: %s\n", outputFileName);
 	}
 	
-    
+    if(inputFile && outputFile){
+    	
+    	createListingFileName();
+    	createTempFileNames();
+    	
+    	listingFile = openListingFile();
+    	tempFile1 = openTempFile1();
+    	tempFile2 = openTempFile2();
+    	
+	}
     
    // listingFile = createListingFile(outputFileName);              // Create .LIS file
    // tempFile1 = createTempFile(outputFileName, 1);               // Temp file 1
