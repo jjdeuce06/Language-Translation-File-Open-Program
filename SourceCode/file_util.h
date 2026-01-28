@@ -4,6 +4,7 @@
 
 #define MAX_FILENAME_LENGTH 260
 
+	//ENUMERATED COMPLETION CODEs
 	typedef enum {
 		
     FILE_CONTINUE = 1,
@@ -11,12 +12,14 @@
     
 	} FILE_STATUS;
 
+	//GLOBAL FILE HANDLES
 	extern FILE* inputFile;
 	extern FILE* outputFile;
 	extern FILE* listingFile;
 	extern FILE* tempFile1;
 	extern FILE* tempFile2;
 
+	//GLOBAL FILE NAME VARIABLES
 	extern char inputFileName[MAX_FILENAME_LENGTH];
 	extern char outputFileName[MAX_FILENAME_LENGTH];
 	extern char listingFileName[MAX_FILENAME_LENGTH];
@@ -24,40 +27,38 @@
 	extern char tempFileName2[MAX_FILENAME_LENGTH];
 
     void header(); // prints header
-    void outputMenu();
-   // void intialization();//NEW handles the arguments
-    //void cmdArgs(int argc, char *argv[], FILE **input_file, FILE **output_file); //reads how many arguments
+    void outputMenu();// prints a menu used in output choice
+    
+    int outputChoice();// output file menu
+    
+    FILE_STATUS noArgs();// handles no arguments
+    FILE_STATUS oneArg(const char* inputArg);// handles one arguments
+    FILE_STATUS twoArg(const char* inputArg, const char* outputArg);// handles two arguments
     
     FILE_STATUS handleInputExe(char* str, const char* exeType);// handles in extension
     FILE_STATUS handleOutputExe(char* str, const char* exeType);//handles out extenstion
     
-    void repromptFile(char* str, const char* exeType, int choice);// reprompts for file name
+    FILE_STATUS repromptFile(char* str, const char* exeType, int choice);// reprompts for file name
 	
 	
-	void copyFileContents();
+	void copyFileContents();//copies file contents
 
-	void backupOutputFile(const char *outputfilename);
+	void backupOutputFile(const char *outputfilename);//backup old outputfile
 
-    FILE_STATUS noArgs();
-    FILE_STATUS oneArg(const char* inputArg);
-    FILE_STATUS twoArg(const char* inputArg, const char* outputArg);
+    void createListingFileName();//creates listing file name
+	void createTempFileNames();// creates temp file names
 
-    int outputChoice();// output file menu
-	
-
-	
+	//File Openers
 	FILE* openInputFile();
 	FILE* openOutputFile();
 	FILE* openListingFile();
 	FILE* openTempFile1();
 	FILE* openTempFile2();
 	
-	void files_close();
+	int file_exists(const char* filename);//checks files existance
 	
-	int file_exists(const char* filename);
-	
-	void createListingFileName();
-	void createTempFileNames();
+	void files_close();// closes files
+	void wrapup();// removes temp files
 	
 	
     

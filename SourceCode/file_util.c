@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h> // for temp file naming
 #include "file_util.h"
 #define IN_EXTENSION ".in"
 #define OUT_EXTENSION ".out"
@@ -25,10 +26,12 @@ void header(){
     printf("=====================================\n\n");
 }
 
-
-void intialization(int argc, char *argv[], FILE **input_file, FILE **output_file)
-{
-  
+void outputMenu(){
+    printf("\n------Pick Option-------\n");
+    printf("--[O] Overwrite File  --\n");
+    printf("--[N] New Output File --\n");
+    printf("--[Q] Quit            --\n");
+    printf("------------------------\n");
 }
 
 FILE_STATUS noArgs() // 
@@ -48,9 +51,6 @@ FILE_STATUS noArgs() //
      return FILE_QUIT;   	
 	}
 
-
-
-    
     printf("Enter your output file name: ");
     fgets(str2, sizeof(str2), stdin);    //reads input and doesnt skip whitespace
     str2[strcspn(str2, "\n")] = '\0';
@@ -64,16 +64,19 @@ FILE_STATUS noArgs() //
 
 FILE_STATUS oneArg(const char* inputArg){
 
+	char str[100];
 	char inputName[MAX_FILENAME_LENGTH];
+	
     strcpy(inputName, inputArg);
 	
 	if(handleInputExe(inputName, IN_EXTENSION) == FILE_QUIT){
      return FILE_QUIT;   	
 	}
 
-    char str[100];
     printf("Enter your output file name: ");
-    scanf("%s", str);
+    fgets(str, sizeof(str), stdin);    //reads input and doesnt skip whitespace
+    str[strcspn(str, "\n")] = '\0';
+
 	if(handleOutputExe(str, OUT_EXTENSION) == FILE_QUIT){
     	return FILE_QUIT;
 	}
@@ -85,13 +88,13 @@ FILE_STATUS twoArg(const char* inputArg, const char* outputArg)
 {
     char inputName[MAX_FILENAME_LENGTH];
     strcpy(inputName, inputArg);
-	
+    
+	char outputName[MAX_FILENAME_LENGTH];
+    strcpy(outputName, outputArg);
+    
 	if(handleInputExe(inputName, IN_EXTENSION) == FILE_QUIT){
      return FILE_QUIT;   	
 	}
-
-	char outputName[MAX_FILENAME_LENGTH];
-    strcpy(outputName, outputArg);
     
     if(handleOutputExe(outputName, OUT_EXTENSION) == FILE_QUIT){
     	return FILE_QUIT;
@@ -105,27 +108,41 @@ FILE_STATUS handleInputExe(char* str, const char* exeType)
 {
     char* extension_indicator = strchr(str, '.');
 
-    if (str[0] == '\0')
-        return FILE_QUIT;
+    if (str[0] == '\0'){
+    	return FILE_QUIT;
+	}
 
-    if (extension_indicator == NULL)
-    {
-        printf("is null, place extention...\n");
+    if (extension_indicator == NULL){
+        printf("No extention found, placing default extention...\n");
         strcat(str, exeType);
     }
-    else
-    {
+    else{
         printf("Extention Detected\n");
     }
-
 	
-	if(file_exists(str)){
-		printf("INPUT FILE EXISTS\n");
-	}else{
-		printf("\n---Please re-enter a valid file name: ");
-		repromptFile(str, exeType, 1);
+	while(!file_exists(str)){
+		
+		printf("Input file does not exist\n ");
+		printf("---Please re-enter a valid file name: ");
+		
+		fgets(str, MAX_FILENAME_LENGTH, stdin);
+		str[strcspn(str, "\n")] = '\0';
+		
+		if(str[0] == '\0'){
+			return FILE_QUIT;
+		}
+		
+		extension_indicator = strchr(str, '.');
+        if (extension_indicator == NULL){
+            printf("No extention found, placing default extention...\n");
+            strcat(str, exeType);
+        }else{
+            printf("Extention Detected\n");
+        }
+        
 	}
 	
+	printf("INPUT FILE EXISTS\n");
 	strcpy(inputFileName, str);
 	return FILE_CONTINUE;
 }
@@ -151,13 +168,11 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType)
     
     
     
-    if (extension_indicator == NULL) // no "." was found ie no extension found in file name
-    {
-        printf("is null, place extention...\n");
+    if (extension_indicator == NULL){ // no "." was found ie no extension found in file name
+     printf("No extention found, placing default extention...\n");
         strcat(str, exeType);
-	}
-	else //if extension_indicator is not null then there is some type of extension on filename
-    {
+        
+	}else{ //if extension_indicator is not null then there is some type of extension on filename
         printf("Extention Detected\n"); //notice extension is found
     }
     
@@ -168,20 +183,30 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType)
 		int i = outputChoice();
 		
 		if(i == 1){
-			printf("You chose overwrite\n");
+			//printf("You chose overwrite\n");
 			backupOutputFile(str);
 		}
 		else if(i == 2){
-			printf("You chose new output file\n");
+			//printf("You chose new output file\n");
 			printf("\n---Please enter a valid new output file name: ");
-			repromptFile(str, exeType, 2);
-		}
-		else if(i ==3){
-			printf("You chose exit\n");
+				
+			fgets(str, MAX_FILENAME_LENGTH, stdin);
+			str[strcspn(str, "\n")] = '\0';
+		
+			while(str[0] == '\0'){
+				printf("New Output filename cannot be empty. Please enter a valid filename: ");
+            	fgets(str, MAX_FILENAME_LENGTH, stdin);
+            	str[strcspn(str, "\n")] = '\0';
+			}
+				
+				return handleOutputExe(str, exeType); //use recurision to check name
+		}else if(i ==3){
+		
+		//	printf("You chose exit\n");
 			return FILE_QUIT;
 		}
 
-		}
+	}
 	strcpy(outputFileName, str);
 	return FILE_CONTINUE;
 }
@@ -195,49 +220,67 @@ int file_exists(const char* filename){
     return 0;          //false
 }
 
-void repromptFile(char* str, const char* exeType, int choice){
+/* //only really had to reprompt when creating a new output file so didnt really need this function
+FILE_STATUS repromptFile(char* str, const char* exeType, int choice){ 
    
         
-        scanf("%s", str);
-        if (choice == 1){
-        	handleInputExe(str, exeType);
-        }else if (choice == 2){
-        	handleOutputExe(str, exeType);
+    	fgets(str, sizeof(str), stdin);    //reads input and doesnt skip whitespace
+    	str[strcspn(str, "\n")] = '\0';	//trims the input
+
+    	
+        if (choice == 1){ //FOR input file
+        	
+        	if (str[0] == '\0'){
+        		return FILE_QUIT;  // if no input file entered when prompted terminate program
+    		} 
+    		
+        	if (handleInputExe(str, exeType) == FILE_QUIT) {
+    			return FILE_QUIT;
+			}
+        	
+        }else if (choice == 2){		// Out put file only gets reprompted if new file is choosen	
+        	
+        	while (str[0] == '\0'){
+        		
+        		printf("New Output filename cannot be empty. Please enter a valid filename: ");
+            	fgets(str, sizeof(str), stdin);
+            	str[strcspn(str, "\n")] = '\0';
+    		} 
+    		
+    		if (handleOutputExe(str, exeType) == FILE_QUIT) {
+    			return FILE_QUIT;
+			}
         }
             
-    
+    return FILE_CONTINUE;
 }
-
-void outputMenu(){
-    printf("\n------Pick Option-------\n");
-    printf("--[O] Overwrite File  --\n");
-    printf("--[N] New Output File --\n");
-    printf("--[Q] Quit            --\n");
-    printf("------------------------\n");
-}
+*/
 
 int outputChoice(){
-    outputMenu();
+   	outputMenu();
+    char input[10];
     char userChoice;
-    scanf("%c", &userChoice);
+    
+    fgets(input, sizeof(input), stdin);  // uses fgets instead of scanf
+    userChoice = input[0];  //gets first character
 
-    switch(userChoice){
+    switch(userChoice) {
         case 'O':
+        case 'o':  //accept the owercases too
             printf("Overwriting file...\n");
             return 1;
         case 'N':
+        case 'n':
             printf("Creating new output file...\n");
             return 2;
         case 'Q':
+        case 'q':
             printf("Quitting program...\n");
             return 3;
         default:
             printf("Invalid choice, please try again.\n");
-            outputChoice();
-            break;
+            return outputChoice();
     }
-
-return 0;
 }
 
 FILE* openInputFile(){
@@ -263,6 +306,8 @@ FILE* openOutputFile(){
 }
 
 FILE* openListingFile(){
+	
+	
 	FILE* file = fopen(listingFileName, "w"); // open the file for reading
     if (file == NULL) {
         printf("Error: Could not open listing file: %s\n", listingFileName);
@@ -273,6 +318,7 @@ FILE* openListingFile(){
 }
 
 FILE* openTempFile1(){
+	
 	FILE* file = fopen(tempFileName1, "w"); // open the file for reading
     if (file == NULL) {
         printf("Error: Could not open temp file 1: %s\n", tempFileName1);
@@ -283,6 +329,7 @@ FILE* openTempFile1(){
 }
 
 FILE* openTempFile2(){
+	
 	FILE* file = fopen(tempFileName2, "w"); // open the file for reading
     if (file == NULL) {
         printf("Error: Could not open temp file 2: %s\n", tempFileName2);
@@ -300,11 +347,11 @@ void copyFileContents(){ // copies the conents of the input to all the other fil
     while ((input = fgetc(inputFile)) != EOF) //read until EOF
     {
     	printf("READ: %c\n", input); 
-        fputc(input, outputFile);
-       fputc(input, listingFile);
-       fputc(input, tempFile1);
-       fputc(input, tempFile2);
-       printf("copying...\n");
+    	fputc(input, outputFile);
+       	fputc(input, listingFile);
+       	fputc(input, tempFile1);
+       	fputc(input, tempFile2);
+      	 //printf("copying...\n");
     }
 	
 }
@@ -330,6 +377,8 @@ void files_close() { // closes all the files
         fclose(tempFile2);
         tempFile2 = NULL;
     }
+    
+    printf("All Files Closed.\n");
 }
 
 void backupOutputFile(const char *outputfilename){
@@ -369,9 +418,15 @@ void createListingFileName(void)
 
 void createTempFileNames(void)
 {
-    strcpy(tempFileName1, outputFileName);
-    strcpy(tempFileName2, outputFileName);
+	srand(time(NULL));
+	int random_num = (rand() % 10000) + 1;
+	
+   // strcpy(tempFileName1, outputFileName);
+   // strcpy(tempFileName2, outputFileName);
 
+	sprintf(tempFileName1, "tempfile1_%d", random_num);
+	sprintf(tempFileName2, "tempfile2_%d", random_num);
+	
     char *dot1 = strrchr(tempFileName1, '.');
     char *dot2 = strrchr(tempFileName2, '.');
 
@@ -390,4 +445,12 @@ void createTempFileNames(void)
     	 strcat(tempFileName2, ".TMP2");
 	}
        
+}
+
+void wrapup(){
+
+	//remove(tempFileName1);
+	//remove(tempFileName2);
+	
+	printf("Wrap up complete. (temporary file deletion commented out in wrap up module)\n");
 }

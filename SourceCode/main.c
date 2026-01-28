@@ -28,12 +28,10 @@ int main(int argc, char *argv[]) {
 
 	FILE_STATUS status = FILE_CONTINUE;
 	
-	
 	header();
 
 	
-	
-	  if (argc == 1)
+	if (argc == 1)
     {
         printf("CASE 1: \n");
         printf("Description:No command line parameters: just program name\n");
@@ -63,16 +61,16 @@ int main(int argc, char *argv[]) {
 	outputFile = openOutputFile();
 	 
 	if (inputFile == NULL) {
-    	printf("Failed to open input file.\n");
+    	printf("Failed to open input file.%s\n", inputFileName);
    		
 	}else{
     printf("Input file opened successfully: %s\n", inputFileName);
 	}
 	
 	
-	if (outputFile == NULL) {
+	if (outputFile == NULL){
     	printf("Failed to open output file.\n");
-	} else {
+	}else{
     	printf("Output file opened: %s\n", outputFileName);
 	}
 	
@@ -86,19 +84,13 @@ int main(int argc, char *argv[]) {
     	tempFile2 = openTempFile2();
     	
 	}
-    
-   // listingFile = createListingFile(outputFileName);              // Create .LIS file
-   // tempFile1 = createTempFile(outputFileName, 1);               // Temp file 1
-   // tempFile2 = createTempFile(outputFileName, 2);               // Temp file 2
-    
-    
+           
     
 
 	copyFileContents(); // copy file contents to other files
 	files_close();      // Close files
-   
-   
-   // wrapUp();          // Delete temp files module
+   	
+   	wrapup();          // Delete temp files module
     
 	return 0;
 }
