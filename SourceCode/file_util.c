@@ -220,41 +220,6 @@ int file_exists(const char* filename){
     return 0;          //false
 }
 
-/* //only really had to reprompt when creating a new output file so didnt really need this function
-FILE_STATUS repromptFile(char* str, const char* exeType, int choice){ 
-   
-        
-    	fgets(str, sizeof(str), stdin);    //reads input and doesnt skip whitespace
-    	str[strcspn(str, "\n")] = '\0';	//trims the input
-
-    	
-        if (choice == 1){ //FOR input file
-        	
-        	if (str[0] == '\0'){
-        		return FILE_QUIT;  // if no input file entered when prompted terminate program
-    		} 
-    		
-        	if (handleInputExe(str, exeType) == FILE_QUIT) {
-    			return FILE_QUIT;
-			}
-        	
-        }else if (choice == 2){		// Out put file only gets reprompted if new file is choosen	
-        	
-        	while (str[0] == '\0'){
-        		
-        		printf("New Output filename cannot be empty. Please enter a valid filename: ");
-            	fgets(str, sizeof(str), stdin);
-            	str[strcspn(str, "\n")] = '\0';
-    		} 
-    		
-    		if (handleOutputExe(str, exeType) == FILE_QUIT) {
-    			return FILE_QUIT;
-			}
-        }
-            
-    return FILE_CONTINUE;
-}
-*/
 
 int outputChoice(){
    	outputMenu();

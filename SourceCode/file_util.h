@@ -60,6 +60,4 @@
 	void files_close();// closes files
 	void wrapup();// removes temp files
 	
-	
-    
 #endif
