@@ -8,11 +8,18 @@
 */
 /***********END HEADER**************/
 
+/*-----------File Overview: ------------------
+- G1P1.c - cmd entrypoint to exectue program
+- file_util.h - holds function declarations
+- file_util.c - holds functions and processes
+----------------------------------------------
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_util.h"
 
-/* run this program using the command prompt */
+// NOTE: run program using command prompt, i.e: G1P1.c file_util.c -o G1P1.exe
 
 /*
  * main
@@ -30,53 +37,13 @@ int main(int argc, char *argv[]) {
 
 	status = handleArgs(argc, argv);
 
-
 	// If user chose to quit anywhere during filename handling, terminate program
 	if (status == FILE_QUIT){ //decides to run program or not
 		printf("Program Terminated\n");
 		return 0;
 	}
 	
-	
-	// OPEN FILES (input/output always required)
-	inputFile = openInputFile();
-	outputFile = openOutputFile();
-	 
-	// Report input open status
-	if (inputFile == NULL) {
-    	printf("Failed to open input file.%s\n", inputFileName);
-   		
-	}else{
-    	printf("Input file opened successfully: %s\n", inputFileName);
-	}
-	
-	// Report output open status
-	if (outputFile == NULL){
-    	printf("Failed to open output file.\n");
-	}else{
-    	printf("Output file opened: %s\n", outputFileName);
-	}
-	
-	// If input/output opened, create/open listing + temp files
-    if(inputFile && outputFile){
-    	
-    	createListingFileName();
-    	createTempFileNames();
-    	
-    	listingFile = openListingFile();
-    	tempFile1 = openTempFile1();
-    	tempFile2 = openTempFile2();
-    	
-	}
-
-	// Copy contents from input into output/listing/temp files
-	copyFileContents(); // copy file contents to other files
-
-	// Close all open files
-	files_close();      // Close files
-   	
-   	// Wrap up (temp deletion currently commented out in wrapup())
-   	wrapup();          // Delete temp files module
+	build();
     
 	return 0;
 }

@@ -6,7 +6,6 @@
 #define IN_EXTENSION ".in"
 #define OUT_EXTENSION ".out"
 
-
 //File declarations
 FILE* inputFile = NULL;
 FILE* outputFile = NULL;
@@ -23,25 +22,6 @@ char tempFileName2[MAX_FILENAME_LENGTH] = "";
 
 
 //-------------------INTRO / UI HELPERS-------------------------
-/*---Instructions:---
-	Three possible cases:
-	1. No arguments only program name
-	2. One argument - input file name
-	3. Two arguments - input and output file names
-
-	when extention not provided, default to .in for input and .out for output
-	handle the cmd arguments
-
-	Missing parameters:
-	-prompt for missing 1 parameter
-	-prompt for input name and output name
-	-when 2 included no prompt
-
-	Responses:
-	-if extention included, use
-	-if not not included, add default extentions
--------End Instructions-------*/
-
 //Header function, produces an introduction to the program
 //Purpose: Prints a formatted header banner that identifies what the program is.
 //Behavior: Writes static text to stdout; does not read input or modify any global state.
@@ -99,21 +79,49 @@ FILE_STATUS handleArgs(int argc, char *argv[]){
 	return status;
 }
 
+void openFiles(void){
+	// OPEN FILES (input/output always required)
+	inputFile = openInputFile();
+	outputFile = openOutputFile();
+	 
+	// Report input open status
+	if (inputFile == NULL) {
+    	printf("Failed to open input file.%s\n", inputFileName);
+   		
+	}else{
+    	printf("Input file opened successfully: %s\n", inputFileName);
+	}
+	
+	// Report output open status
+	if (outputFile == NULL){
+    	printf("Failed to open output file.\n");
+	}else{
+    	printf("Output file opened: %s\n", outputFileName);
+	}
+	
+	// If input/output opened, create/open listing + temp files
+    if(inputFile && outputFile){
+    	
+    	createListingFileName();
+    	createTempFileNames();
+    	listingFile = openListingFile();
+    	tempFile1 = openTempFile1();
+    	tempFile2 = openTempFile2();
+	}
+}
 
+void build(void){
+	openFiles();
 
+	// Copy contents from input into output/listing/temp files
+	copyFileContents(); // copy file contents to other files
 
-
-
-
-
-
-
-
-
-
-
-
-
+	// Close all open files
+	files_close();      // Close files
+   	
+   	// Wrap up (temp deletion currently commented out in wrapup())
+   	wrapup();          // Delete temp files module
+}
 
 //-------------------COMMAND LINE HANDLING-------------------------
 //Function for when the user gives no files in the command prompts
@@ -159,14 +167,12 @@ FILE_STATUS noArgs() //
     fgets(str2, sizeof(str2), stdin);    //reads input from the user and places the string into str2
     str2[strcspn(str2, "\n")] = '\0';    //removes trailing newline from str
 
-
 	//run str2 through handleOutputeExe and see if the function returns a FILE_QUIT
 	if(handleOutputExe(str2, OUT_EXTENSION) == FILE_QUIT)
 	{
 		//if it does return status FILE_QUIT
     	return FILE_QUIT;
 	}
-	
 	//if all the files return a good status, return FILE_CONTINUE
 	return FILE_CONTINUE;
 }
@@ -334,7 +340,6 @@ FILE_STATUS handleInputExe(char* str, const char* exeType)
 			//indicate an extension was found
             printf("Extention Detected\n");
         }
-        
 	}
 	
 	//once the user enters a valid name, print a message and copy the str into inputFileName, then return FILE_CONTINUE
@@ -380,10 +385,7 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType)
 		}    	
 	}
 	
-	
     char* extension_indicator = strchr(str, '.'); // looks for a "." in the filename
-    
-    
     
     if (extension_indicator == NULL){ // no "." was found ie no extension found in file name
      printf("No extention found, placing default extention...\n");
@@ -400,11 +402,9 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType)
 		int i = outputChoice();
 		
 		if(i == 1){
-			//printf("You chose overwrite\n");
 			backupOutputFile(str);
 		}
 		else if(i == 2){
-			//printf("You chose new output file\n");
 			printf("\n---Please enter a valid new output file name: ");
 				
 			fgets(str, MAX_FILENAME_LENGTH, stdin);
@@ -418,11 +418,9 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType)
 				
 				return handleOutputExe(str, exeType); //use recurision to check name
 		}else if(i ==3){
-		
-		//	printf("You chose exit\n");
+	
 			return FILE_QUIT;
 		}
-
 	}
 	strcpy(outputFileName, str);
 	return FILE_CONTINUE;
@@ -500,7 +498,6 @@ FILE* openInputFile(){
         printf("Error: Could not open input file: %s\n", inputFileName);
         return NULL;  
     }
-    
     return file;
 }
 	
@@ -519,7 +516,6 @@ FILE* openOutputFile(){
         printf("Error: Could not open output file: %s\n", outputFileName);
         return NULL;  
     }
-    
     return file;
 }
 
@@ -539,7 +535,6 @@ FILE* openListingFile(){
         printf("Error: Could not open listing file: %s\n", listingFileName);
         return NULL;  
     }
-    
     return file;
 }
 
@@ -558,7 +553,6 @@ FILE* openTempFile1(){
         printf("Error: Could not open temp file 1: %s\n", tempFileName1);
         return NULL;  
     }
-    
     return file;
 }
 
@@ -577,7 +571,6 @@ FILE* openTempFile2(){
         printf("Error: Could not open temp file 2: %s\n", tempFileName2);
         return NULL;  
     }
-    
     return file;
 }
 
@@ -602,7 +595,6 @@ void copyFileContents(){ // copies the conents of the input to all the other fil
        	fputc(input, listingFile);
        	fputc(input, tempFile1);
        	fputc(input, tempFile2);
-      	 //printf("copying...\n");
     }
 	
 }
@@ -666,7 +658,6 @@ void backupOutputFile(const char *outputfilename){
     	strcat(backupName, ".BAK");
 	}
         
-
     remove(backupName);              // remove old file backup if it exists
     rename(outputfilename, backupName);  // replaces the file name with the same name but as a .BAK
     
@@ -709,9 +700,6 @@ void createTempFileNames(void)
 	srand(time(NULL));
 	int random_num = (rand() % 10000) + 1;
 	
-   // strcpy(tempFileName1, outputFileName);
-   // strcpy(tempFileName2, outputFileName);
-
 	sprintf(tempFileName1, "tempfile1_%d", random_num);
 	sprintf(tempFileName2, "tempfile2_%d", random_num);
 	
@@ -724,7 +712,6 @@ void createTempFileNames(void)
     else{
     	strcat(tempFileName1, ".TMP1");
 	}
-        
 
     if (dot2 != NULL){
     	strcpy(dot2, ".TMP2");
