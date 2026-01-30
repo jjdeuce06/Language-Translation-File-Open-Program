@@ -30,7 +30,8 @@
     void outputMenu();// prints a menu used in output choice
     
     int outputChoice();// output file menu
-    
+
+    FILE_STATUS handleArgs(int argc, char *argv[]);
     FILE_STATUS noArgs();// handles no arguments
     FILE_STATUS oneArg(const char* inputArg);// handles one arguments
     FILE_STATUS twoArg(const char* inputArg, const char* outputArg);// handles two arguments
