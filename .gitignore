@@ -1,0 +1,30 @@
+# ---- C build artifacts ----
+*.o
+*.obj
+*.exe
+*.a
+*.so
+*.dll
+
+# ---- Debug / temp files ----
+*.log
+*.tmp
+*.stackdump
+*.LIS
+*.out
+*.in
+*.TMP1
+
+# ---- VS Code ----
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# ---- MSYS2 / MinGW ----
+*.ilk
+*.pdb
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db

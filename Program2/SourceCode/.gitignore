@@ -1,0 +1,27 @@
+# ===== C build artifacts =====
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.so
+*.dll
+
+# ===== Program-generated files =====
+*.lis
+*.tmp1
+*.tmp2
+
+# ===== Debug / core dumps =====
+*.dSYM/
+core
+vgcore.*
+
+# ===== Editor / OS junk =====
+.vscode/
+*.swp
+*.swo
+*.bak
+*~
+.DS_Store
+Thumbs.db
