@@ -4,14 +4,15 @@
 		- John Gerega: ger9822@pennwest.edu
 		- Luke Ruffing: RUF96565@pennwest.edu
 	COURSE: Language Translation - CMSC-4180-100
-	PROGRAM NAME: FILE OPEN 
+	PROGRAM NAME: Scanner 
 */
 /***********END HEADER**************/
 
 /*-----------File Overview: ------------------
-- G1P1.c - cmd entrypoint to exectue program
+- G1P2.c - cmd entrypoint to exectue program
 - file_util.h - holds function declarations
 - file_util.c - holds functions and processes
+- scanner.c   - holds scanner logic
 ----------------------------------------------
 */
 
@@ -32,8 +33,8 @@ int main(int argc, char *argv[]) {
 
 	FILE_STATUS status;
 	
-	// Print program header/banner
-	header();
+	// // Print program header/banner
+	 header();
 
 	status = handleArgs(argc, argv);
 
@@ -44,6 +45,17 @@ int main(int argc, char *argv[]) {
 	}
 	
 	build();
+
+
+//where to call scanner?!?!
+	// startup();
+	// while(token != SCANEOF){
+	// 	scanner();
+	// 	//write to output
+	// 	//write to listing file
+
+	// }
+	// wrapup();
     
 	return 0;
 }
