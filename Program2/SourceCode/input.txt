@@ -1,1 +1,3 @@
-test data12
+begin           -- a program
+a:= BB & A;
+end

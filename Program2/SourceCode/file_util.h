@@ -62,5 +62,59 @@
 	
 	void files_close();// closes files
 	void wrapup();// removes temp files
+
+
+	//---Program 2------------
+
+	typedef enum {
+		/* Keywords */
+		BEGIN,
+		END,
+		READ,
+		WRITE,
+		IF,
+		THEN,
+		ELSE,
+		ENDIF,
+		WHILE,
+		ENDWHILE,
+
+		/* Identifiers & literals */
+		ID,
+		INTLITERAL,
+
+		/* Boolean / null literals */
+		FALSEOP,
+		TRUEOP,
+		NULLOP,
+
+		/* Parentheses & punctuation */
+		LPAREN,        // (
+		RPAREN,        // )
+		SEMICOLON,     // ;
+		COMMA,         // ,
+
+		/* Operators */
+		ASSIGNOP,        // :=
+		PLUSOP,          // +
+		MINUSOP,         // -
+		MULTOP,          // *
+		DIVOP,           // /
+		NOTOP,           // !
+		LESSOP,          // <
+		LESSEQUALOP,     // <=
+		GREATEROP,       // >
+		GREATEREQUALOP,  // >=
+		EQUALOP,         // =
+		NOTEQUALOP,      // <>
+		ANDOP,           // and
+		OROP,            // or
+
+		/* Special */
+		SCANEOF,
+		ERROR
+
+	} Token;
+
 	
 #endif
