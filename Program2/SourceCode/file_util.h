@@ -115,6 +115,15 @@
 		ERROR
 
 	} Token;
+/* ---not sure the type yet? void??----Frome lecture 7
+	start_up(FILE *, FILE *, FILE *);
+	clear_buffer(char *);
+	Token check_reserved(char *);
+	int lexical_error(char *, flag, FILE *);
+	token_ident(Token, char *);
+	add_char(char *, char);
 
-	
+	Token scanner(char * buffer, FILE * in_file, FILE * out_file, FILE * list_file);
+
+*/	
 #endif
