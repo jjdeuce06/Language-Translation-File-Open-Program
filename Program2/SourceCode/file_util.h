@@ -124,6 +124,7 @@
 	void add_char(char *, char);
 
 	Token scanner(char * buffer, FILE * in_file, FILE * out_file, FILE * list_file);
+	Token scan_digits(char *buffer, FILE *in_file);
 
 
 #endif
