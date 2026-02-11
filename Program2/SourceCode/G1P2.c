@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 	// 	//write to listing file
 
 	// }
-	token = scanner(buffer, inputFile, outputFile, listingFile);
+	token = scanner(buffer, inputFile, outputFile, listingFile);//needs to go in the functions but where?
 
 	while (token != SCANEOF) {
 
