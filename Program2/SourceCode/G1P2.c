@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 	FILE_STATUS status;
 	
 	// // Print program header/banner
-	 header();
+	header();
 
 	status = handleArgs(argc, argv);
 
@@ -59,37 +59,3 @@ int main(int argc, char *argv[]) {
     
 	return 0;
 }
-// #include <stdio.h>
-// #include "file_util.h"   // must contain Token enum + prototypes
-
-// int main(void)
-// {
-//     FILE *in_file;
-//     FILE *out_file = NULL;   // not used yet
-//     FILE *list_file = NULL;  // not used yet
-
-//     char buffer[128];
-//     Token token;
-
-//     /* open input file */
-//     in_file = fopen("input.txt", "r");
-//     if (in_file == NULL) {
-//         printf("Could not open input file\n");
-//         return 1;
-//     }
-
-//     /* first token */
-//     token = scanner(buffer, in_file, out_file, list_file);
-
-//     /* loop until EOF */
-//     while (token != SCANEOF) {
-//         printf("Token: %d   Lexeme: %s\n", token, buffer);
-//         token = scanner(buffer, in_file, out_file, list_file);
-//     }
-
-//     /* print EOF token */
-//     printf("Token: %d   Lexeme: %s\n", token, buffer);
-
-//     fclose(in_file);
-//     return 0;
-// }
