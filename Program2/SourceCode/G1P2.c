@@ -32,6 +32,8 @@
 int main(int argc, char *argv[]) {
 
 	FILE_STATUS status;
+	Token token;
+	char buffer[128];
 	
 	// // Print program header/banner
 	header();
@@ -55,7 +57,17 @@ int main(int argc, char *argv[]) {
 	// 	//write to listing file
 
 	// }
-	// wrapup();
+	token = scanner(buffer, inputFile, outputFile, listingFile);
+
+	while (token != SCANEOF) {
+
+		/* write token to output file */
+		fprintf(outputFile, "%d %s\n", token, buffer);
+
+		token = scanner(buffer, inputFile, outputFile, listingFile);
+	}
+
+	wrapup();
     
 	return 0;
 }
