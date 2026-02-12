@@ -30,7 +30,7 @@ char tempFileName2[MAX_FILENAME_LENGTH] = "";
 //Purpose: Prints a formatted header banner that identifies what the program is.
 void header(){
     printf("\n=====================================\n");
-    printf("Language Translation File Open Program\n");
+    printf("Language Translation Scanner Program\n");
     printf("=====================================\n\n");
 }
 
