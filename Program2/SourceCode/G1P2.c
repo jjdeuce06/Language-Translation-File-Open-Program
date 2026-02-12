@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_util.h"
+#include "scanner.h"
 
 // NOTE: run program using command prompt, i.e: G1P1.c file_util.c -o G1P1.exe
 
@@ -46,7 +47,9 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	build();
+	//build(); 
+	
+	openFiles();
 
 
 //where to call scanner?!?!
@@ -57,15 +60,21 @@ int main(int argc, char *argv[]) {
 	// 	//write to listing file
 
 	// }
-	token = scanner(buffer, inputFile, outputFile, listingFile);//needs to go in the functions but where?
+	
+	
+//	token = scanner(buffer, inputFile, outputFile, listingFile);//needs to go in the functions but where?
 
-	while (token != SCANEOF) {
-
-		/* write token to output file */
-		fprintf(outputFile, "%d %s\n", token, buffer);
-
+	do{
+		
 		token = scanner(buffer, inputFile, outputFile, listingFile);
-	}
+		
+		/* write token to output file */ //used custom toekn to string function but i think thats what the token_indent is for
+		fprintf(outputFile, "token number: %3d  token type %-15s actual token: %s\n", token, token_to_string(token), buffer);
+
+		
+	} while (token != SCANEOF);
+	
+	fprintf(listingFile, "\n\n%d 	Lexical Errors.\n", lexical_error(buffer, 1, listingFile));
 
 	wrapup();
     

@@ -6,6 +6,10 @@
 #define IN_EXTENSION ".in"
 #define OUT_EXTENSION ".out"
 
+//error tracking varibles
+int lexicalErrorCount = 0;
+int currentLine = 1;
+
 //File declarations
 FILE* inputFile = NULL;
 FILE* outputFile = NULL;
@@ -114,7 +118,7 @@ void build(void){
 	//files_close();      // Close files
    	
    	// Wrap up (temp deletion currently commented out in wrapup())
-   	wrapup();          // Delete temp files module
+   //	wrapup();          // Delete temp files module  wrap up is called in main
 }
 
 //-------------------COMMAND LINE HANDLING-------------------------

@@ -4,6 +4,10 @@
 
 #define MAX_FILENAME_LENGTH 260
 
+	//error tracking varibles
+	extern int lexicalErrorCount;
+	extern int currentLine;
+
 	//ENUMERATED COMPLETION CODEs
 	typedef enum {
 		
@@ -63,68 +67,6 @@
 	void files_close();// closes files
 	void wrapup();// removes temp files
 
-
-	//---Program 2------------
-
-	typedef enum {
-		/* Keywords */
-		BEGIN,
-		END,
-		READ,
-		WRITE,
-		IF,
-		THEN,
-		ELSE,
-		ENDIF,
-		WHILE,
-		ENDWHILE,
-
-		/* Identifiers & literals */
-		ID,
-		INTLITERAL,
-
-		/* Boolean / null literals */
-		FALSEOP,
-		TRUEOP,
-		NULLOP,
-
-		/* Parentheses & punctuation */
-		LPAREN,        // (
-		RPAREN,        // )
-		SEMICOLON,     // ;
-		COMMA,         // ,
-
-		/* Operators */
-		ASSIGNOP,        // :=
-		PLUSOP,          // +
-		MINUSOP,         // -
-		MULTOP,          // *
-		DIVOP,           // /
-		NOTOP,           // !
-		LESSOP,          // <
-		LESSEQUALOP,     // <=
-		GREATEROP,       // >
-		GREATEREQUALOP,  // >=
-		EQUALOP,         // =
-		NOTEQUALOP,      // <>
-		ANDOP,           // and
-		OROP,            // or
-
-		/* Special */
-		SCANEOF,
-		ERROR
-
-	} Token;
-/* ---not sure the type yet? void??----Frome lecture 7*/
-	void start_up(FILE *, FILE *, FILE *);
-	void clear_buffer(char *);
-	Token check_reserved(char *);
-	int lexical_error(char *, int flag, FILE *);
-	void token_ident(Token, char *);
-	void add_char(char *, char);
-
-	Token scanner(char * buffer, FILE * in_file, FILE * out_file, FILE * list_file);
-	Token scan_digits(char *buffer, FILE *in_file);
 
 
 #endif
