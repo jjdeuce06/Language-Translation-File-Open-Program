@@ -5,15 +5,40 @@
 #include <string.h>
 #include <stdlib.h>
 
+//create static variables to track line numbers and errors
 static int newLine = 1;
 static int errorLineFlag = 0;
 static char errors[128];
 
-
+//startup function
 void start_up(FILE *in, FILE *out, FILE *list)
 {
+    //sets currentLine count to 1 and lexicalErrorCount to 0 at the start of the program
     currentLine = 1;
     lexicalErrorCount = 0;
+}
+
+
+//functions for input
+
+//read charavyer function
+static int read_char(FILE *in_file, FILE *list_file)
+{
+    //get character from input file and put it in listing file if it is not the end of file
+    int ch = fgetc(in_file);
+    
+    if (ch != EOF)
+        fputc(ch, list_file);
+
+    return ch;
+}
+
+//unread character function
+static void unread_char(int ch, FILE *in_file)
+{
+    //put character back into input file if it is not the end of file
+    if (ch != EOF)
+        ungetc(ch, in_file);
 }
 
 //IDEA to have one return we can iterate through the cases and add the correct token be added to a variable and return the varible at the end 
@@ -27,81 +52,86 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
 	
     clear_buffer(buffer);
 
-    //while (peek == blank) advance
-    ch = fgetc(in_file);
-    
-	if (ch == EOF){
-		strcpy(buffer, "EOF");
-     	return SCANEOF;
-	}
-       
-     // prints line number in listing file
-    if (newLine){
-        fprintf(list_file, "%d  ", currentLine);
+    //print line number before reading first visible character of the line
+    if (newLine)
+    {
+        fprintf(list_file, "%4d: ", currentLine);
         newLine = 0;
     }
 
-    //puts the character into listing file always
-    fputc(ch, list_file);
+    //read first character and echo it to the listing file
+    ch = (char)read_char(in_file, list_file);
 
-    //handles newline
-    if (ch == '\n'){
-    	
-    	if(errorLineFlag){
-    		
-    		fprintf(list_file, "Error.  %s not recognized in line %d.\n", errors, currentLine);
-    		errorLineFlag = 0;
-		}
+    if (ch == EOF)
+    {
+        strcopy(buffer, "EOF");
+        return SCANEOF;
+    }
+
+    //skip whitespace including new lines
+    //listing file gets everything echoed
+    //when hitting newline, update currentline + printerror message if needed
+    //first nonwhitespace begins token logic
+
+    while (ch!= EOF && isspace((unsigned char)ch))
+    {
+        if (ch == '/n')
+        {
+            //if lexical error, report it
+            if (errorLineFlag)
+            {
+                fprintf(list_file, "Error. %s not recognized in line %d\n", errors, currentLine);
+                errorLineFlag = 0;
+            }
+        }
+
         currentLine++;
         newLine = 1;
-        return scanner(buffer, in_file, out_file, list_file);
+
+        //next line, print line number before reading first char
+        fprintf(list_file, "%d ", currentLine);
+        newLine = 0;
     }
-    
-    // handles whitespace
-    while (isspace(ch))
+
+    ch = (char)read_char(in_file, list_file);
+
+    if (ch == EOF)
     {
-        ch = fgetc(in_file);
-
-        if (ch == EOF)
-            return SCANEOF;
-
-        fputc(ch, list_file);
-
-        if (ch == '\n'){
-        	
-            currentLine++;
-            newLine = 1;
-            return scanner(buffer, in_file, out_file, list_file);
-        }
+        strcopy(buffer, "EOF");
+        return SCANEOF;
     }
     
-   
+    
+
     //if digit--ScanDigits 
-    if (isdigit(ch)) {
-        ungetc(ch, in_file);
-        ans = scan_digits(buffer, in_file, list_file);
-        return ans;
+    if (isdigit((unsigned char)ch)) {
+        unread_char(ch, in_file);
+        return scan_digits(buffer, in_file, list_file);
     }
- 
- 	
- 
+
     /*advance already done, switch(ch) */
     switch (ch) {
 
         /* case {a,b,...,z} */
         default:
-            if (isalpha(ch)) {
+            if (isalpha((unsigned char)ch)) {
                 add_char(buffer, ch);
 
-                ch = fgetc(in_file);
-                while (isalnum(ch)) {
-                	fputc(ch, list_file);
-                    add_char(buffer, ch);
-                    ch = fgetc(in_file);
+                //read as long as it's alphanumeric; each read is echoed to listing automatically
+
+                while (1)
+                {
+                    int next = read_char(in_file, list_file);
+
+                    if (!isalnum((unsigned char)next))
+                    {
+                        unread_char(next, in_file);
+                        break;
+                    }
+                    add_char(buffer, (char)next);
                 }
 
-                ungetc(ch, in_file);
-                return check_reserved(buffer);// look for i, f, p
+                return check_reserved(buffer);
             }
 
             add_char(buffer, ch);
@@ -125,16 +155,17 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
             return COMMA;
             
         case ':':
-            ch = fgetc(in_file);
-            if (ch == '=') {
-            	fputc(ch, list_file);
+            int next = read_char(in_file, list_file);
+            if (next == '=') 
+            {
                 strcpy(buffer, ":=");
                 return ASSIGNOP;
             }
-            ungetc(ch, in_file);
+            unread_char(next, in_file);
             add_char(buffer, ':');
             lexical_error(buffer, 0, list_file);
             return ERROR;
+            
 
         case '+':
             add_char(buffer, '+');
@@ -178,32 +209,32 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
             return NOTOP;
             
         case '<':
-            ch = fgetc(in_file);
-            if (ch == '=') {
-            	fputc(ch, list_file);
+            add_char(buffer, '<');
+            int next = read_char(in_file, list_file);
+            if (next == '=') 
+            {
                 strcpy(buffer, "<=");
                 return LESSEQUALOP;
             }
-            if (ch == '>') {
-            	fputc(ch, list_file);
+            if (next == '>') 
+            {
                 strcpy(buffer, "<>");
                 return NOTEQUALOP;
             }
-            ungetc(ch, in_file);
-            add_char(buffer, '<');
+
+            unread_char(next, in_file);
             return LESSOP;
             
             
         case '>':
-            ch = fgetc(in_file);
-            if (ch == '=') {
-            	fputc(ch, list_file);
+            add_char(buffer, '>');
+            int next = read_char(in_file, list_file);
+            if (next == '=') 
+            {
                 strcpy(buffer, ">=");
                 return GREATEREQUALOP;
             }
-            
-            ungetc(ch, in_file);
-            add_char(buffer, '>');
+            unread_char(next, in_file);
             return GREATEROP;
             
         case '=':
@@ -215,19 +246,21 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
 
 Token scan_digits(char *buffer, FILE *in_file, FILE *list_file)
 {
-    char ch;
-    //clear_buffer(buffer); shouldnt clear buffer after passed
+    int ch;
 
-    ch = fgetc(in_file);
-    
-    while (isdigit(ch)){
-    	
-        add_char(buffer, ch);
-        fputc(ch, list_file);
-        ch = fgetc(in_file);
+    //read digits until we hit non-digit
+    while (1)
+    {
+        ch = read_char(in_file, list_file);
+
+        if (!isdigit((unsigned char)ch))
+        {
+            unread_char(ch, in_file);
+            break;
+        }
+        add_char(buffer, (char)ch);
     }
 
-    ungetc(ch, in_file);
     return INTLITERAL;
 }
 

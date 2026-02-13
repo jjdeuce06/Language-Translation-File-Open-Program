@@ -64,7 +64,8 @@ int main(int argc, char *argv[]) {
 	
 //	token = scanner(buffer, inputFile, outputFile, listingFile);//needs to go in the functions but where?
 
-	do{
+	do
+	{
 		
 		token = scanner(buffer, inputFile, outputFile, listingFile);
 		
