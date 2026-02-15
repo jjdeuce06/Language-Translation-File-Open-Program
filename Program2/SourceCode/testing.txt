@@ -1,0 +1,9 @@
+token number:    0    token type: BEGIN           actual token: BEGIN
+token number:   10    token type: ID              actual token: a
+token number:   19    token type: ASSIGNOP        actual token: :=
+token number:   10    token type: ID              actual token: BB
+token number:   34    token type: ERROR           actual token: &
+token number:   10    token type: ID              actual token: A
+token number:   17    token type: SEMICOLON       actual token: ;
+token number:    1    token type: END             actual token: END
+token number:   33    token type: SCANEOF         actual token: EOF

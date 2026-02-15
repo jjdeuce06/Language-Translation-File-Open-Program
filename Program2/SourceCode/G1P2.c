@@ -50,29 +50,21 @@ int main(int argc, char *argv[]) {
 	//build(); 
 	
 	openFiles();
+	start_up(inputFile, outputFile, listingFile);
 
-
-//where to call scanner?!?!
-	// startup();
-	// while(token != SCANEOF){
-	// 	scanner();
-	// 	//write to output
-	// 	//write to listing file
-
-	// }
 	
-	
-//	token = scanner(buffer, inputFile, outputFile, listingFile);//needs to go in the functions but where?
-
 	do
 	{
-		
 		token = scanner(buffer, inputFile, outputFile, listingFile);
-		
-		/* write token to output file */ //used custom toekn to string function but i think thats what the token_indent is for
-		fprintf(outputFile, "token number: %3d  token type %-15s actual token: %s\n", token, token_to_string(token), buffer);
 
-		
+		fprintf(outputFile,
+				"token number:%5d    token type: %-12s    actual token: ",
+				(int)token,
+				token_to_string(token));
+
+		print_actual_token(outputFile, token, buffer);
+		fprintf(outputFile, "\n");
+
 	} while (token != SCANEOF);
 	
 	fprintf(listingFile, "\n\n%d 	Lexical Errors.\n", lexical_error(buffer, 1, listingFile));

@@ -62,6 +62,7 @@
 	int lexical_error(char *, int flag, FILE *);
 	void token_ident(Token, char *);
 	void add_char(char *, char);
+	void print_actual_token(FILE *out, Token tok, char *buffer);
 
 	Token scanner(char * buffer, FILE * in_file, FILE * out_file, FILE * list_file);
 	Token scan_digits(char *buffer, FILE *in_file, FILE *list_file);
