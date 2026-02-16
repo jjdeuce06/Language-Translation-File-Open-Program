@@ -45,6 +45,7 @@ static int getc_raw(FILE *in_file)
     return fgetc(in_file);
 }
 
+//Function to remove the character from the file stream and push it back
 static void ungetc_safe(int ch, FILE *in_file)
 {
     if (ch != EOF)
@@ -70,8 +71,10 @@ void start_up(FILE *in, FILE *out, FILE *list)
 /* digits after the first digit is already in buffer */
 Token scan_digits(char *buffer, FILE *in_file, FILE *list_file)
 {
+    //first digit is already in buffer, now we retrieve the next character to check if it is also a digit
     int next = getc_raw(in_file);
 
+    //while the next character is a digit, consume it and add it to the buffer, while also echoing to the listing file
     while (isdigit((unsigned char)next))
     {
         fputc(next, list_file);      // now it is consumed -> echo once
@@ -79,7 +82,9 @@ Token scan_digits(char *buffer, FILE *in_file, FILE *list_file)
         next = getc_raw(in_file);
     }
 
+    //once we have a non-digit character, push it back to the file stream
     ungetc_safe(next, in_file);
+    //return the token for integer literals
     return INTLITERAL;
 }
 
@@ -87,6 +92,7 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
 {
     (void)out_file;
 
+    //clear our buffer
     clear_buffer(buffer);
 
     /* Print line number at start of each line */
@@ -96,11 +102,13 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
         newLine = 0;
     }
 
+    //create a character variable and initialize by consuming first character from input file and echoing it to the listing file
     int ch = getc_echo(in_file, list_file);
 
     /* Skip whitespace (no breaks) */
     while (ch != EOF && isspace((unsigned char)ch))
     {
+        //when we encounter a newline, check for errors on that line and print them and reset the error flag
         if (ch == '\n')
         {
             if (errorLineFlag)
@@ -110,13 +118,16 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
                 errorLineFlag = 0;
             }
 
+            //increment the line number and print it to the listing file
             currentLine++;
             fprintf(list_file, "%d  ", currentLine);
         }
 
+        //consume the next character and echo it to the listing file
         ch = getc_echo(in_file, list_file);
     }
 
+    //if the character is the EOF, return the SCANEOF token and set the buffer to "EOF"
     if (ch == EOF)
     {
         strcpy(buffer, "EOF");
@@ -124,15 +135,18 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
     }
 
     /* Identifiers / reserved words */
+    //if the first character is a letter, it is an identifer or reserved word
     if (isalpha((unsigned char)ch))
     {
-        //first ketter of identifier is stored in the buffer
+        //first letter of identifier is stored in the buffer
         add_char(buffer, (char)ch);
 
+        //get the next character to check if it is also a letter or digit
         int next = getc_raw(in_file);
         while (isalnum((unsigned char)next))
         {
-            fputc(next, list_file);       // this character belongs in the token -> echo and store in buffer
+            //while the character is a letter or digit, consume it and add to the buffer
+            fputc(next, list_file); 
             add_char(buffer, (char)next);
             next = getc_raw(in_file);
         }
@@ -143,17 +157,20 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
     }
 
     /* Integers */
+    //if the first character is a digit, it is an integer literal
     if (isdigit((unsigned char)ch))
     {
         //first digit is stored in the buffer
         add_char(buffer, (char)ch);
-        //store remainin digits in buffer
+        //store remaining digits in buffer
         return scan_digits(buffer, in_file, list_file);
     }
 
     /* Operators / punctuation */
+    //switch statement to check for single character operators and punctuation, and handle multi-character operators with lookahead
     switch (ch)
     {
+        //single character tokens: add to buffer and return corresponding token
         case '(': add_char(buffer, '('); return LPAREN;
         case ')': add_char(buffer, ')'); return RPAREN;
         case ';': add_char(buffer, ';'); return SEMICOLON;
@@ -164,7 +181,7 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
         case '!': add_char(buffer, '!'); return NOTOP;
         case '=': add_char(buffer, '='); return EQUALOP;
 
-        /* := */
+        /* looking for the :=  operator*/
         case ':':
         {
             int next = getc_raw(in_file);
@@ -348,11 +365,12 @@ const char* token_to_string(Token token)
     }
 }
 
-
+//function to handle lexical errors
 int lexical_error(char *buffer, int flag, FILE *list_file)
 {
     (void)list_file;
 
+    //if the flag is 0, we are recording a new error
     if (flag == 0)
     {
         strcpy(errors, buffer);
@@ -366,19 +384,22 @@ int lexical_error(char *buffer, int flag, FILE *list_file)
     return 1;
 }
 
-void token_ident(Token token, char *buffer)
-{
-    (void)token;
-    (void)buffer;
-}
+// void token_ident(Token token, char *buffer)
+// {
+//     (void)token;
+//     (void)buffer;
+// }
 
+//helper function to add a character to the end of the buffer string
 void add_char(char *buffer, char ch)
 {
+    //find the current length of the buffer, add the character at the end, and null terminate
     int len = (int)strlen(buffer);
     buffer[len] = ch;
     buffer[len + 1] = '\0';
 }
 
+//function to print the actual token text to the listing file. For reserved words, we print token name
 void print_actual_token(FILE *out, Token tok, char *buffer)
 {
     /* Reserved words should print uppercase */
