@@ -23,7 +23,6 @@ static int newLine = 1;
 static int errorLineFlag = 0;
 static char errors[128];
 
-
 /*
 * These functions are essential to the fix
 * getc_echo(): consume a character and echo it to the listing file
