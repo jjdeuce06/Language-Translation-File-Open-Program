@@ -10,11 +10,14 @@
 
 	//ENUMERATED COMPLETION CODEs
 	typedef enum {
-		
-    FILE_CONTINUE = 1,
-    FILE_QUIT     = 0
-    
+		FILE_CONTINUE = 1,
+		FILE_QUIT     = 0
 	} FILE_STATUS;
+
+	typedef enum{
+		FILE_DOES_NOT_EXIST,
+		FILE_EXISTS
+	} FILE_EXIST_STATUS;
 
 	//GLOBAL FILE HANDLES
 	extern FILE* inputFile;
@@ -62,11 +65,17 @@
 	FILE* openTempFile1();
 	FILE* openTempFile2();
 	
-	int file_exists(const char* filename);//checks files existance
+	FILE_EXIST_STATUS file_exists(const char* filename);//checks files existance
 	
 	void files_close();// closes files
 	void wrapup();// removes temp files
 
-
+	//fix returns
+	typedef enum {
+		OUTPUT_OVERWRITE,
+		OUTPUT_NEW,
+		OUTPUT_QUIT,
+		OUTPUT_INVALID
+	} OUTPUT_CHOICE;
 
 #endif

@@ -251,7 +251,7 @@ FILE_STATUS handleInputExe(char* str, const char* exeType)
     }
 	
 	//while the file the user entered does not exist
-	while(!file_exists(str)){
+	while(file_exists(str) == FILE_DOES_NOT_EXIST){
 		
 		//print error message and message to reprompt
 		printf("Input file does not exist\n ");
@@ -319,18 +319,18 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType) {
         }
 
         // Check if file exists
-        if (file_exists(str)) {
+        if (file_exists(str) == FILE_EXISTS) {
             printf("OUTPUT FILE EXISTS\n");
             int choice = outputChoice();
 
-            if (choice == 1) {
+            if (choice == OUTPUT_OVERWRITE) {
                 backupOutputFile(str); // move old output to .BAK (safe)
                 break; // now safe to use
-            } else if (choice == 2) {
+            } else if (choice == OUTPUT_NEW) {
                 printf("Enter a new output file name: ");
                 fgets(str, MAX_FILENAME_LENGTH, stdin);
                 continue; // loop again
-            } else if (choice == 3) {
+            } else if (choice == OUTPUT_QUIT) {
                 return FILE_QUIT;
             }
         } else {
@@ -345,13 +345,13 @@ FILE_STATUS handleOutputExe(char* str, const char* exeType) {
 }
 
 //Purpose: Checks whether a file exists by attempting to open it for reading.
-int file_exists(const char* filename){
+FILE_EXIST_STATUS file_exists(const char* filename){
 	FILE* file = fopen(filename, "r");  //  try opening it for reading
     if (file) {
         fclose(file);  //file exists and close it
-        return 1;      //true
+        return FILE_EXISTS;      //true
     }
-    return 0;          //false
+    return FILE_DOES_NOT_EXIST;          //false
 }
 
 //Purpose: Presents the overwrite/new/quit menu and returns a normalized numeric choice.
@@ -367,15 +367,15 @@ int outputChoice(){
         case 'O':
         case 'o':  //accept the owercases too
             printf("Overwriting file...\n");
-            return 1;
+            return OUTPUT_OVERWRITE;
         case 'N':
         case 'n':
             printf("Creating new output file...\n");
-            return 2;
+            return OUTPUT_NEW;
         case 'Q':
         case 'q':
             printf("Quitting program...\n");
-            return 3;
+            return OUTPUT_QUIT;
         default:
             printf("Invalid choice, please try again.\n");
             return outputChoice();
@@ -406,7 +406,6 @@ FILE* openOutputFile(){
 
 //Purpose: Opens the listing file (global listingFileName) for writing.
 FILE* openListingFile(){
-	
 	
 	FILE* file = fopen(listingFileName, "w"); // open the file for reading
     if (file == NULL) {
@@ -442,7 +441,6 @@ FILE* openTempFile2(){
 void copyFileContents(){ // copies the conents of the input to all the other files
 	
 	int input;
-	
 	 
     while ((input = fgetc(inputFile)) != EOF) //read until EOF
     {
