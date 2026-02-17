@@ -45,10 +45,7 @@ int main(int argc, char *argv[]) {
 	if (status == FILE_QUIT){ //decides to run program or not
 		printf("Program Terminated\n");
 		return 0;
-	}
-	
-	//build(); 
-	
+	}	
 	openFiles();
 	start_up(inputFile, outputFile, listingFile);
 

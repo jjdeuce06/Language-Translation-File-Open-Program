@@ -113,12 +113,6 @@ void build(void){
 
 	// Copy contents from input into output/listing/temp files
 	copyFileContents(); // copy file contents to other files //!!!!replace with scanner
-
-	// Close all open files
-	//files_close();      // Close files
-   	
-   	// Wrap up (temp deletion currently commented out in wrapup())
-   //	wrapup();          // Delete temp files module  wrap up is called in main
 }
 
 //-------------------COMMAND LINE HANDLING-------------------------
@@ -229,7 +223,6 @@ FILE_STATUS twoArg(const char* inputArg, const char* outputArg)
 
 
 //-------------------HELPERS-------------------------
-
 //Function for handling input file names from the user
 //Purpose: Validates and normalizes an input filename provided by the user (or command line).
 FILE_STATUS handleInputExe(char* str, const char* exeType)
@@ -296,64 +289,59 @@ FILE_STATUS handleInputExe(char* str, const char* exeType)
 	return FILE_CONTINUE;
 }
 
-//function to handle output files
-//Purpose: Validates and normalizes an output filename provided by the user (or command line).
-FILE_STATUS handleOutputExe(char* str, const char* exeType)
-{
-	
-   if (str[0] == '\0')
-   {    // if string is empty give source file name with .out extension
-    	printf("NO OUTPUT FILE GIVEN\n");
-    	strcpy(str, inputFileName);
+FILE_STATUS handleOutputExe(char* str, const char* exeType) {
+    while (1) {
+        // Remove newline
+        str[strcspn(str, "\n")] = '\0';
 
-    	char *dot = strrchr(str, '.');
-    	
-    	if (dot != NULL){
-			strcpy(dot, exeType);
-		}else{
-			strcat(str, exeType);		
-		}    	
-	}
-	
-    char* extension_indicator = strchr(str, '.'); // looks for a "." in the filename
-    
-    if (extension_indicator == NULL){ // no "." was found ie no extension found in file name
-     printf("No extention found, placing default extention...\n");
-        strcat(str, exeType);
-        
-	}else{ //if extension_indicator is not null then there is some type of extension on filename
-        printf("Extention Detected\n"); //notice extension is found
+        // If empty, default to input file name
+        if (str[0] == '\0') {
+            printf("NO OUTPUT FILE GIVEN, using input file name as base\n");
+            strcpy(str, inputFileName);
+        }
+
+        // Check for extension
+        char* dot = strrchr(str, '.');
+        if (dot == NULL) {
+            // No extension,  default
+            strcat(str, exeType);
+            printf("No extension found, adding default: %s\n", exeType);
+        } else {
+            printf("Extension detected\n");
+        }
+
+        // Prevent output matching input
+        if (strcmp(str, inputFileName) == 0) {
+            printf("Error: Output file cannot be the same as input file!\n");
+            printf("Enter a different output file name: ");
+            fgets(str, MAX_FILENAME_LENGTH, stdin);
+            continue; //loop
+        }
+
+        // Check if file exists
+        if (file_exists(str)) {
+            printf("OUTPUT FILE EXISTS\n");
+            int choice = outputChoice();
+
+            if (choice == 1) {
+                backupOutputFile(str); // move old output to .BAK (safe)
+                break; // now safe to use
+            } else if (choice == 2) {
+                printf("Enter a new output file name: ");
+                fgets(str, MAX_FILENAME_LENGTH, stdin);
+                continue; // loop again
+            } else if (choice == 3) {
+                return FILE_QUIT;
+            }
+        } else {
+            // File does not exist, safe to use
+            break;
+        }
     }
-    
-    
-    
-	if(file_exists(str)){
-		printf("OUTPUT FILE EXISTS\n");
-		int i = outputChoice();
-		
-		if(i == 1){
-			backupOutputFile(str);
-		}
-		else if(i == 2){
-			printf("\n---Please enter a valid new output file name: ");
-				
-			fgets(str, MAX_FILENAME_LENGTH, stdin);
-			str[strcspn(str, "\n")] = '\0';
-		
-			while(str[0] == '\0'){
-				printf("New Output filename cannot be empty. Please enter a valid filename: ");
-            	fgets(str, MAX_FILENAME_LENGTH, stdin);
-            	str[strcspn(str, "\n")] = '\0';
-			}
-				
-				return handleOutputExe(str, exeType); //use recurision to check name
-		}else if(i ==3){
-	
-			return FILE_QUIT;
-		}
-	}
-	strcpy(outputFileName, str);
-	return FILE_CONTINUE;
+
+    // Copy final safe name to global
+    strcpy(outputFileName, str);
+    return FILE_CONTINUE;
 }
 
 //Purpose: Checks whether a file exists by attempting to open it for reading.
@@ -407,13 +395,13 @@ FILE* openInputFile(){
 	
 //Purpose: Opens the validated output file (global outputFileName) for writing.
 FILE* openOutputFile(){
-	
+
 	FILE* file = fopen(outputFileName, "w"); // open the file for reading
-    if (file == NULL) {
-        printf("Error: Could not open output file: %s\n", outputFileName);
-        return NULL;  
-    }
-    return file;
+	if (file == NULL) {
+		printf("Error: Could not open output file: %s\n", outputFileName);
+		return NULL;  
+	}
+	return file;
 }
 
 //Purpose: Opens the listing file (global listingFileName) for writing.
