@@ -51,6 +51,22 @@ static void ungetc_safe(int ch, FILE *in_file)
         ungetc(ch, in_file);
 }
 
+void runScanner(Token token, FILE* inputFile, FILE* outputFile, FILE* listingFile, char* buffer){
+    do{
+		token = scanner(buffer, inputFile, outputFile, listingFile);
+
+		fprintf(outputFile,
+				"token number:%5d    token type: %-12s    actual token: ",
+				(int)token,
+				token_to_string(token));
+
+		print_actual_token(outputFile, token, buffer);
+		fprintf(outputFile, "\n");
+
+	} while (token != SCANEOF);
+	
+	fprintf(listingFile, "\n\n%d 	Lexical Errors.\n", lexical_error(buffer, 1, listingFile));
+}
 
 //start up function, initializes global variables and state for the scanner
 void start_up(FILE *in, FILE *out, FILE *list)

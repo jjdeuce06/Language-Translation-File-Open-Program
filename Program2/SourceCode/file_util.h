@@ -38,7 +38,6 @@
     
     int outputChoice();// output file menu
 	void openFiles(void); //open all files
-	void build(void);
 
     FILE_STATUS handleArgs(int argc, char *argv[]);
     FILE_STATUS noArgs();// handles no arguments

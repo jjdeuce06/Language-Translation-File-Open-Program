@@ -108,12 +108,6 @@ void openFiles(void){
 	}
 }
 
-void build(void){
-	openFiles();
-
-	// Copy contents from input into output/listing/temp files
-	copyFileContents(); // copy file contents to other files //!!!!replace with scanner
-}
 
 //-------------------COMMAND LINE HANDLING-------------------------
 //Function for when the user gives no files in the command prompts

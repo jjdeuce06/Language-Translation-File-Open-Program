@@ -31,15 +31,15 @@
  * - Opens required files, creates listing/temp files, copies contents, then closes/cleans up.
  */
 int main(int argc, char *argv[]) {
-
+	//initialize variables for scanner
 	FILE_STATUS status;
 	Token token;
-	char buffer[128];
+	char buffer[128];// this needs to be token??
 	
-	// // Print program header/banner
+	//Print program header/banner
 	header();
 
-	status = handleArgs(argc, argv);
+	status = handleArgs(argc, argv); //handle cmd input
 
 	// If user chose to quit anywhere during filename handling, terminate program
 	if (status == FILE_QUIT){ //decides to run program or not
@@ -49,24 +49,9 @@ int main(int argc, char *argv[]) {
 	openFiles();
 	start_up(inputFile, outputFile, listingFile);
 
+	runScanner(token, inputFile, outputFile, listingFile, buffer);//build and run scanner
 	
-	do
-	{
-		token = scanner(buffer, inputFile, outputFile, listingFile);
-
-		fprintf(outputFile,
-				"token number:%5d    token type: %-12s    actual token: ",
-				(int)token,
-				token_to_string(token));
-
-		print_actual_token(outputFile, token, buffer);
-		fprintf(outputFile, "\n");
-
-	} while (token != SCANEOF);
-	
-	fprintf(listingFile, "\n\n%d 	Lexical Errors.\n", lexical_error(buffer, 1, listingFile));
-
-	wrapup();
+	wrapup();//clean up files
     
 	return 0;
 }
