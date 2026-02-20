@@ -72,7 +72,7 @@ FILE_STATUS handleArgs(int argc, char *argv[]){
 	// If user chose to quit anywhere during filename handling, terminate program
 	if (status == FILE_QUIT){ //decides to run program or not
 		printf("Program Terminated\n");
-		return 0;
+		return FILE_QUIT;
 	}
 	return status;
 }
@@ -106,6 +106,10 @@ void openFiles(void){
     	tempFile1 = openTempFile1();
     	tempFile2 = openTempFile2();
 	}
+	
+	fprintf(tempFile1, "The Temp\n");
+	fprintf(tempFile2, "Loop Information\n");
+	
 }
 
 
@@ -540,7 +544,19 @@ void createTempFileNames(void)
 //Purpose: Performs end-of-program cleanup tasks (currently temporary file deletion is disabled).
 void wrapup(){
 
-	files_close();
+	fclose(tempFile1); //close temp file1 taht was open in writing mode
 	
-	printf("Wrap up complete. (temporary file deletion commented out in wrap up module)\n");
+	tempFile1 = fopen(tempFileName1,"r"); //open tempfile1 but for just reading as to not over write the file
+	
+	//Append tempfile1 to the end of the output file
+	int ch;
+	while((ch = fgetc(tempFile1)) != EOF){
+		fputc(ch, outputFile);
+	}
+	
+	files_close();//closes all files
+	
+	remove(tempFileName1);// delete tempfile1
+	
+	printf("Wrap up complete. (temporary file 1 is deleted in wrap up module)\n");
 }

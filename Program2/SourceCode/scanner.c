@@ -21,7 +21,7 @@
 
 static int newLine = 1;
 static int errorLineFlag = 0;
-static char errors[128];
+static char errors[512];
 
 /*
 * These functions are essential to the fix
@@ -128,9 +128,10 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
         {
             if (errorLineFlag)
             {
-                fprintf(list_file, "Error. %s not recognized in line %d.\n",
+                fprintf(list_file, "ERROR %s not recognized in line %d.\n",
                         errors, currentLine);
                 errorLineFlag = 0;
+                errors[0] = '\0';   //clears the buffer after the error is printed
             }
 
             //increment the line number and print it to the listing file
@@ -145,6 +146,14 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
     //if the character is the EOF, return the SCANEOF token and set the buffer to "EOF"
     if (ch == EOF)
     {
+    	if (errorLineFlag)
+            {
+                fprintf(list_file, "\nERROR %s not recognized in line %d.\n",
+                        errors, currentLine);
+                errorLineFlag = 0;
+                errors[0] = '\0';   //clears the buffer after the error is printed
+            }
+            
         strcpy(buffer, "EOF");
         return SCANEOF;
     }
@@ -231,9 +240,10 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
                 {
                     if (errorLineFlag)
                     {
-                        fprintf(list_file, "Error. %s not recognized in line %d.\n",
+                        fprintf(list_file, "ERROR %s not recognized in line %d.\n",
                                 errors, currentLine);
                         errorLineFlag = 0;
+                        errors[0] = '\0';   //clears the buffer after the error is printed
                     }
                     currentLine++;
                     newLine = 1;
@@ -388,13 +398,26 @@ int lexical_error(char *buffer, int flag, FILE *list_file)
     //if the flag is 0, we are recording a new error
     if (flag == 0)
     {
-        strcpy(errors, buffer);
+        if (errorLineFlag == 0)
+        {
+            errors[0] = '\0';   //clear for new line
+        }
+
+        if (strlen(errors) > 0)
+        {
+            strcat(errors, ", ");
+        }
+
+        strcat(errors, buffer);
+
         errorLineFlag = 1;
         lexicalErrorCount++;
     }
 
-    if (flag == 1)
-        return lexicalErrorCount;
+    if (flag == 1){
+    	  return lexicalErrorCount;
+	}
+      
 
     return 1;
 }
