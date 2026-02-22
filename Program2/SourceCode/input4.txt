@@ -1,0 +1,34 @@
+begin --BB sample program
+
+read a, b;
+write a + b;
+
+if true and false or !false then
+    x := 10;
+else
+    x := null;
+endif;
+
+while x >= 0
+    x := x - 1;
+endwhile;
+
+y := (x * 2) / 3 + 5;
+
+if x <> 5 then
+    z := x <= 100;
+endif;
+
+if x > 1 then
+    z := x < 20;
+endif;
+
+a := 1;
+b := 2;
+
+@              --BB illegal character
+123abc        -- BB invalid identifier (starts with digit)
+x := 10 $ 5;   --BB illegal symbol in expression
+!&            -- BB invalid operator combination
+
+end
