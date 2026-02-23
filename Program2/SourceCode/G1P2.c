@@ -21,7 +21,7 @@
 #include "file_util.h"
 #include "scanner.h"
 
-// NOTE: run program using command prompt, i.e: G1P1.c file_util.c -o G1P1.exe
+// NOTE: run program using command prompt, i.e: gcc G1P2.c scanner.c file_util.c -o main
 
 /*
  * main
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 	//initialize variables for scanner
 	FILE_STATUS status;
 	Token token;
-	char buffer[128];// this needs to be token??
+	char buffer[128];
 	
 	//Print program header/banner
 	header();
