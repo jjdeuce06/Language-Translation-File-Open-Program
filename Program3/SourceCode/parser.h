@@ -7,15 +7,12 @@
 
 /*
  * Parser-wide counters.
- * lexicalErrorCount and currentLine already exist in file_util.
- * These two are new for parser program 3.
  */
 extern int syntaxErrorCount;
 extern int semanticErrorCount;
 
 /*
  * Startup / finish routines for parser program 3.
- * main should call parser_startup(), then system_goal(), then parser_finish().
  */
 void parser_startup(void);
 void parser_finish(void);

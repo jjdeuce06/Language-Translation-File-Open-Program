@@ -13,7 +13,7 @@ int semanticErrorCount = 0;
 
 /*
  * LL(1) parser lookahead:
- * instead of rewinding the scanner, we keep one token saved here.
+ * keep a token saved
  * This makes next_token() non-destructive from the parser's perspective.
  */
 static Token lookahead;
@@ -21,7 +21,7 @@ static char lookaheadBuffer[128];
 
 /*
  * Holds the current statement text so that when ';' is matched,
- * we can print the completed statement to the output file.
+ * print the completed statement to the output file.
  */
 static char statementBuffer[1024];
 
@@ -141,9 +141,7 @@ int match(Token expected, char *buffer)
 
 /* =========================================================
    recover_to_semicolon
-   - simple panic-mode recovery
    - keep scanning until semicolon or a safe block-ending token
-   - this follows the assignment direction to continue instead of quitting
    ========================================================= */
 int recover_to_semicolon(char *buffer)
 {
@@ -209,8 +207,6 @@ int program(char *buffer)
    statement_list
    production 2:
    <statement list> -> <statement> {<statement list>}
-   Practical implementation:
-   keep parsing statements while next token begins a statement
    ========================================================= */
 int statement_list(char *buffer)
 {
@@ -417,9 +413,6 @@ int term(char *buffer)
    15. - <factor>
    16. ID
    17. INTLITERAL
-
-   Also supports !, TRUE, FALSE, NULL because your scanner has them
-   and your grammar later includes primary forms for them.
    ========================================================= */
 int factor(char *buffer)
 {
@@ -467,8 +460,6 @@ int factor(char *buffer)
 
 /* =========================================================
    condition
-   Basic practical condition parser for your tokens.
-   This keeps things workable with your grammar and scanner:
    parse an expression, then allow relational/logical chaining.
    ========================================================= */
 int condition(char *buffer)
