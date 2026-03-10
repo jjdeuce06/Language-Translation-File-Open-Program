@@ -96,11 +96,16 @@ int match(Token expected, char *buffer)
     }
 
     /* If statement ended, print it now */
-    if (lookahead == SEMICOLON)
-    {
-        print_completed_statement();
-        clear_statement_buffer();
-    }
+    if (lookahead == BEGIN ||
+    	lookahead == SEMICOLON ||
+    	lookahead == THEN ||
+    	lookahead == ELSE ||
+    	lookahead == ENDIF ||
+    	lookahead == ENDWHILE)
+	{
+   		print_completed_statement();
+    	clear_statement_buffer();
+	}
 
     /* Advance token only if not EOF and last match succeeded */
     if (result)
@@ -164,7 +169,8 @@ int program(char *buffer)
 
     if (!match(BEGIN, buffer))
         ok = 0;
-
+	
+	
     if (!statement_list(buffer))
         ok = 0;
 
@@ -246,14 +252,24 @@ int statement(char *buffer)
                  if_tail(buffer);
     }
     else if (t == WHILE)
-    {
-        result = match(WHILE, buffer) &&
-                 match(LPAREN, buffer) &&
-                 condition(buffer) &&
-                 match(RPAREN, buffer) &&
-                 statement_list(buffer) &&
-                 match(ENDWHILE, buffer);
-    }
+	{
+    	result = match(WHILE, buffer) &&
+            	match(LPAREN, buffer) &&
+            	condition(buffer) &&
+            	match(RPAREN, buffer);
+
+    	if (result)
+    	{
+        	print_completed_statement();
+        	clear_statement_buffer();
+    	}
+
+    	if (result)
+    	{
+        	result = statement_list(buffer) &&
+            match(ENDWHILE, buffer);
+    	}
+	}
     else
     {
         fprintf(listingFile,"\nSYNTAX ERROR: invalid start of statement on line %d\n", currentLine);
@@ -436,7 +452,7 @@ int factor(char *buffer)
     else if (t == LPAREN)
     {
         result = match(LPAREN, buffer) &&
-                 expression(buffer) &&
+                 condition(buffer) && //changed from expression to condition to test
                  match(RPAREN, buffer);
     }
     else if (t == MINUSOP)
@@ -463,7 +479,7 @@ int factor(char *buffer)
     }
     else
     {
-        fprintf(listingFile,"\nSYNTAX ERROR: invalid factor '%s' on line %d\n",buffer, currentLine);
+        fprintf(listingFile,"\nSYNTAX ERROR: invalid factor '%s' on line %d\n",lookaheadBuffer, currentLine);
         syntaxErrorCount++;
         result = 0;
     }

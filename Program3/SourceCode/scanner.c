@@ -170,7 +170,8 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
             next = getc_raw(in_file);
         }
         ungetc_safe(next, in_file);
-
+		
+		to_lower_str(buffer); //Turns the buffer contents into lowercase so the check reserved word function works properly.
         tok = check_reserved(buffer);
         return tok; // identifiers handled here
     }
@@ -347,7 +348,7 @@ const char* token_to_string(Token token)
     switch(token)
     {
         case BEGIN:
-            str = "BEGIN";
+            if (token == BEGIN) str = "BEGIN";
         case END:
             if (token == END) str = "END";
         case READ:
@@ -469,5 +470,15 @@ void print_actual_token(FILE *out, Token tok, char *buffer)
     else
     {
         fprintf(out, "%s", buffer);
+    }
+}
+
+void to_lower_str(char *s)
+{
+    int i = 0;
+    while (s[i] != '\0')
+    {
+        s[i] = (char)tolower((unsigned char)s[i]);
+        i++;
     }
 }

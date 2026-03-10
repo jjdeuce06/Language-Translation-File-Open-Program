@@ -70,5 +70,6 @@
 	Token handle_operator(char *buffer, int ch, FILE *in_file, FILE *out_file, FILE *list_file);
 
 	const char* token_to_string(Token);
+	void to_lower_str(char *s);
 
 #endif
