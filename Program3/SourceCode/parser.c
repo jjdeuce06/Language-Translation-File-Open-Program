@@ -4,36 +4,8 @@
 #include "scanner.h"
 #include "file_util.h"
 
-/*
- * Parser-specific counters.
- * lexicalErrorCount is already tracked by scanner/file_util.
- */
 int syntaxErrorCount = 0;
 int semanticErrorCount = 0;
-
-/*
- * LL(1) parser lookahead:
- * keep a token saved
- * This makes next_token() non-destructive from the parser's perspective.
- */
-static Token lookahead;
-static char lookaheadBuffer[128];
-
-/*
- * Holds the current statement text so that when ';' is matched,
- * print the completed statement to the output file.
- */
-static char statementBuffer[1024];
-
-/* ---------- private helper prototypes ---------- */
-static void advance_token(void);
-static int is_statement_start(Token t);
-static int is_add_op(Token t);
-static int is_mult_op(Token t);
-static int is_rel_or_logical_op(Token t);
-static void clear_statement_buffer(void);
-static void append_statement(const char *text);
-static void print_completed_statement(void);
 
 /* =========================================================
    parser_startup
@@ -100,15 +72,15 @@ Token next_token(char *buffer)
    ========================================================= */
 int match(Token expected, char *buffer)
 {
+    int result = 1; 
+
     /* Give caller the current lexeme text */
     strcpy(buffer, lookaheadBuffer);
 
     /* Required parser output: expected token vs actual token */
     fprintf(outputFile,
-            "Parser match -> expected: %-14s actual: %-14s lexeme: %s\n",
-            token_to_string(expected),
-            token_to_string(lookahead),
-            lookaheadBuffer);
+            "Parser match -> expected: %-14s actual: %-14s lexeme: %s\n",token_to_string(expected),
+            token_to_string(lookahead),lookaheadBuffer);
 
     /* Save token text into statement buffer */
     append_statement(lookaheadBuffer);
@@ -117,14 +89,10 @@ int match(Token expected, char *buffer)
     if (lookahead != expected)
     {
         fprintf(listingFile,
-                "\nSYNTAX ERROR: expected %s but found %s (lexeme: %s) on line %d\n",
-                token_to_string(expected),
-                token_to_string(lookahead),
-                lookaheadBuffer,
-                currentLine);
-
+                "\nSYNTAX ERROR: expected %s but found %s (lexeme: %s) on line %d\n",token_to_string(expected),
+                token_to_string(lookahead),lookaheadBuffer,currentLine);
         syntaxErrorCount++;
-        return 0;
+        result = 0;  // mark failure
     }
 
     /* If statement ended, print it now */
@@ -134,9 +102,12 @@ int match(Token expected, char *buffer)
         clear_statement_buffer();
     }
 
-    /* Advance after successful match */
-    advance_token();
-    return 1;
+    /* Advance token only if not EOF and last match succeeded */
+    if (result)
+    {
+        advance_token();
+    }
+    return result; 
 }
 
 /* =========================================================
@@ -145,6 +116,7 @@ int match(Token expected, char *buffer)
    ========================================================= */
 int recover_to_semicolon(char *buffer)
 {
+    int result = 1;
     while (lookahead != SEMICOLON &&
            lookahead != SCANEOF &&
            lookahead != END &&
@@ -157,11 +129,10 @@ int recover_to_semicolon(char *buffer)
     /* If we stopped at semicolon, consume it so parsing can continue */
     if (lookahead == SEMICOLON)
     {
-        match(SEMICOLON, buffer);
+        result = match(SEMICOLON, buffer) && result;
     }
-
     clear_statement_buffer();
-    return 1;
+    return result; 
 }
 
 /* =========================================================
@@ -239,60 +210,59 @@ int statement_list(char *buffer)
 int statement(char *buffer)
 {
     Token t = next_token(buffer);
+    int result = 0; // default failure
 
-    switch (t)
+    if (t == ID)
     {
-        case ID:
-            if (!match(ID, buffer)) return 0;
-            if (!match(ASSIGNOP, buffer)) return 0;
-            if (!expression(buffer)) return 0;
-            if (!match(SEMICOLON, buffer)) return 0;
-            return 1;
-
-        case READ:
-            if (!match(READ, buffer)) return 0;
-            if (!match(LPAREN, buffer)) return 0;
-            if (!id_list(buffer)) return 0;
-            if (!match(RPAREN, buffer)) return 0;
-            if (!match(SEMICOLON, buffer)) return 0;
-            return 1;
-
-        case WRITE:
-            if (!match(WRITE, buffer)) return 0;
-            if (!match(LPAREN, buffer)) return 0;
-            if (!expr_list(buffer)) return 0;
-            if (!match(RPAREN, buffer)) return 0;
-            if (!match(SEMICOLON, buffer)) return 0;
-            return 1;
-
-        case IF:
-            if (!match(IF, buffer)) return 0;
-            if (!match(LPAREN, buffer)) return 0;
-            if (!condition(buffer)) return 0;
-            if (!match(RPAREN, buffer)) return 0;
-            if (!match(THEN, buffer)) return 0;
-            if (!statement_list(buffer)) return 0;
-            if (!if_tail(buffer)) return 0;
-            return 1;
-
-        case WHILE:
-            if (!match(WHILE, buffer)) return 0;
-            if (!match(LPAREN, buffer)) return 0;
-            if (!condition(buffer)) return 0;
-            if (!match(RPAREN, buffer)) return 0;
-            if (!statement_list(buffer)) return 0;
-            if (!match(ENDWHILE, buffer)) return 0;
-            return 1;
-
-        default:
-            fprintf(listingFile,
-                    "\nSYNTAX ERROR: invalid start of statement on line %d\n",
-                    currentLine);
-            syntaxErrorCount++;
-            return 0;
+        result = match(ID, buffer) &&
+                 match(ASSIGNOP, buffer) &&
+                 expression(buffer) &&
+                 match(SEMICOLON, buffer);
     }
-}
+    else if (t == READ)
+    {
+        result = match(READ, buffer) &&
+                 match(LPAREN, buffer) &&
+                 id_list(buffer) &&
+                 match(RPAREN, buffer) &&
+                 match(SEMICOLON, buffer);
+    }
+    else if (t == WRITE)
+    {
+        result = match(WRITE, buffer) &&
+                 match(LPAREN, buffer) &&
+                 expr_list(buffer) &&
+                 match(RPAREN, buffer) &&
+                 match(SEMICOLON, buffer);
+    }
+    else if (t == IF)
+    {
+        result = match(IF, buffer) &&
+                 match(LPAREN, buffer) &&
+                 condition(buffer) &&
+                 match(RPAREN, buffer) &&
+                 match(THEN, buffer) &&
+                 statement_list(buffer) &&
+                 if_tail(buffer);
+    }
+    else if (t == WHILE)
+    {
+        result = match(WHILE, buffer) &&
+                 match(LPAREN, buffer) &&
+                 condition(buffer) &&
+                 match(RPAREN, buffer) &&
+                 statement_list(buffer) &&
+                 match(ENDWHILE, buffer);
+    }
+    else
+    {
+        fprintf(listingFile,"\nSYNTAX ERROR: invalid start of statement on line %d\n", currentLine);
+        syntaxErrorCount++;
+        result = 0;
+    }
 
+    return result; 
+}
 /* =========================================================
    if_tail
    productions:
@@ -302,24 +272,24 @@ int statement(char *buffer)
 int if_tail(char *buffer)
 {
     Token t = next_token(buffer);
+    int result = 0; 
 
     if (t == ELSE)
     {
-        if (!match(ELSE, buffer)) return 0;
-        if (!statement_list(buffer)) return 0;
-        if (!match(ENDIF, buffer)) return 0;
-        return 1;
+        result = match(ELSE, buffer) &&
+                 statement_list(buffer) &&
+                 match(ENDIF, buffer);
     }
-    else if (t == ENDIF)
+    else if (t == ENDIF){
+        result = match(ENDIF, buffer);
+    }
+    else
     {
-        return match(ENDIF, buffer);
+        fprintf(listingFile,"\nSYNTAX ERROR: expected ELSE or ENDIF on line %d\n",currentLine);
+        syntaxErrorCount++;
+        result = 0;
     }
-
-    fprintf(listingFile,
-            "\nSYNTAX ERROR: expected ELSE or ENDIF on line %d\n",
-            currentLine);
-    syntaxErrorCount++;
-    return 0;
+    return result; 
 }
 
 /* =========================================================
@@ -331,16 +301,23 @@ int if_tail(char *buffer)
    ========================================================= */
 int id_list(char *buffer)
 {
+    int result = 1;
     if (!match(ID, buffer))
-        return 0;
-
-    while (next_token(buffer) == COMMA)
     {
-        if (!match(COMMA, buffer)) return 0;
-        if (!match(ID, buffer)) return 0;
+        result = 0;
     }
-
-    return 1;
+    while (result && next_token(buffer) == COMMA)
+    {
+        if (!match(COMMA, buffer))
+        {
+            result = 0;
+        }
+        if (result && !match(ID, buffer))
+        {
+            result = 0;
+        }
+    }
+    return result;
 }
 
 /* =========================================================
@@ -352,16 +329,24 @@ int id_list(char *buffer)
    ========================================================= */
 int expr_list(char *buffer)
 {
+    int result = 1; 
     if (!expression(buffer))
-        return 0;
-
-    while (next_token(buffer) == COMMA)
     {
-        if (!match(COMMA, buffer)) return 0;
-        if (!expression(buffer)) return 0;
+        result = 0;
     }
 
-    return 1;
+    while (result && next_token(buffer) == COMMA)
+    {
+        if (!match(COMMA, buffer))
+        {
+            result = 0;
+        }
+        if (result && !expression(buffer))
+        {
+            result = 0;
+        }
+    }
+    return result;
 }
 
 /* =========================================================
@@ -371,18 +356,28 @@ int expr_list(char *buffer)
    ========================================================= */
 int expression(char *buffer)
 {
-    if (!term(buffer))
-        return 0;
+    int result = 1;
 
-    while (is_add_op(next_token(buffer)))
+    if (!term(buffer))
+    {
+        result = 0;
+    }
+
+    while (result && is_add_op(next_token(buffer)))
     {
         Token t = next_token(buffer);
 
-        if (!match(t, buffer)) return 0;
-        if (!term(buffer)) return 0;
-    }
+        if (!match(t, buffer))
+        {
+            result = 0;
+        }
 
-    return 1;
+        if (result && !term(buffer))
+        {
+            result = 0;
+        }
+    }
+    return result; 
 }
 
 /* =========================================================
@@ -392,18 +387,29 @@ int expression(char *buffer)
    ========================================================= */
 int term(char *buffer)
 {
-    if (!factor(buffer))
-        return 0;
+    int result = 1;
 
-    while (is_mult_op(next_token(buffer)))
+    if (!factor(buffer))
+    {
+        result = 0;
+    }
+
+    while (result && is_mult_op(next_token(buffer)))
     {
         Token t = next_token(buffer);
 
-        if (!match(t, buffer)) return 0;
-        if (!factor(buffer)) return 0;
+        if (!match(t, buffer))
+        {
+            result = 0;
+        }
+
+        if (result && !factor(buffer))
+        {
+            result = 0;
+        }
     }
 
-    return 1;
+    return result; 
 }
 
 /* =========================================================
@@ -417,65 +423,81 @@ int term(char *buffer)
 int factor(char *buffer)
 {
     Token t = next_token(buffer);
+    int result = 0; // default
 
-    switch (t)
+    if (t == ID)
     {
-        case ID:
-            return match(ID, buffer);
-
-        case INTLITERAL:
-            return match(INTLITERAL, buffer);
-
-        case LPAREN:
-            if (!match(LPAREN, buffer)) return 0;
-            if (!expression(buffer)) return 0;
-            if (!match(RPAREN, buffer)) return 0;
-            return 1;
-
-        case MINUSOP:
-            if (!match(MINUSOP, buffer)) return 0;
-            return factor(buffer);
-
-        case NOTOP:
-            if (!match(NOTOP, buffer)) return 0;
-            return factor(buffer);
-
-        case TRUEOP:
-            return match(TRUEOP, buffer);
-
-        case FALSEOP:
-            return match(FALSEOP, buffer);
-
-        case NULLOP:
-            return match(NULLOP, buffer);
-
-        default:
-            fprintf(listingFile,
-                    "\nSYNTAX ERROR: invalid factor '%s' on line %d\n",
-                    buffer, currentLine);
-            syntaxErrorCount++;
-            return 0;
+        result = match(ID, buffer);
     }
-}
+    else if (t == INTLITERAL)
+    {
+        result = match(INTLITERAL, buffer);
+    }
+    else if (t == LPAREN)
+    {
+        result = match(LPAREN, buffer) &&
+                 expression(buffer) &&
+                 match(RPAREN, buffer);
+    }
+    else if (t == MINUSOP)
+    {
+        result = match(MINUSOP, buffer) &&
+                 factor(buffer);
+    }
+    else if (t == NOTOP)
+    {
+        result = match(NOTOP, buffer) &&
+                 factor(buffer);
+    }
+    else if (t == TRUEOP)
+    {
+        result = match(TRUEOP, buffer);
+    }
+    else if (t == FALSEOP)
+    {
+        result = match(FALSEOP, buffer);
+    }
+    else if (t == NULLOP)
+    {
+        result = match(NULLOP, buffer);
+    }
+    else
+    {
+        fprintf(listingFile,"\nSYNTAX ERROR: invalid factor '%s' on line %d\n",buffer, currentLine);
+        syntaxErrorCount++;
+        result = 0;
+    }
 
+    return result;
+}
 /* =========================================================
    condition
    parse an expression, then allow relational/logical chaining.
    ========================================================= */
 int condition(char *buffer)
 {
-    if (!expression(buffer))
-        return 0;
+    int result = 1;
 
-    while (is_rel_or_logical_op(next_token(buffer)))
+    if (!expression(buffer))
+    {
+        result = 0;
+    }
+
+    while (result && is_rel_or_logical_op(next_token(buffer)))
     {
         Token t = next_token(buffer);
 
-        if (!match(t, buffer)) return 0;
-        if (!expression(buffer)) return 0;
-    }
+        if (!match(t, buffer))
+        {
+            result = 0;
+        }
 
-    return 1;
+        if (result && !expression(buffer))
+        {
+            result = 0;
+        }
+    }
+    return result;
 }
 
 /* =========================================================
