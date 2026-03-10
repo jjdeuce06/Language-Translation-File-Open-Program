@@ -1,0 +1,1 @@
+Run program from folder Program2/SourceCode: gcc G1P3.c scanner.c parser.c file_util.c  -o main
