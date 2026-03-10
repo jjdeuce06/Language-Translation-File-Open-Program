@@ -106,10 +106,6 @@ void openFiles(void){
     	tempFile1 = openTempFile1();
     	tempFile2 = openTempFile2();
 	}
-	
-	// fprintf(tempFile1, "The Temp\n");
-	// fprintf(tempFile2, "Loop Information\n");
-	
 }
 
 

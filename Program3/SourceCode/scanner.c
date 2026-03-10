@@ -102,12 +102,13 @@ Token scan_digits(char *buffer, FILE *in_file, FILE *list_file)
     //return the token for integer literals
     return INTLITERAL;
 }
-
 Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
 {
     (void)out_file;
 
-    //clear our buffer
+    Token tok = ERROR; // default token
+
+    // clear our buffer
     clear_buffer(buffer);
 
     /* Print line number at start of each line */
@@ -117,13 +118,13 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
         newLine = 0;
     }
 
-    //create a character variable and initialize by consuming first character from input file and echoing it to the listing file
+    // create a character variable and initialize by consuming first character from input file and echoing it
     int ch = getc_echo(in_file, list_file);
 
     /* Skip whitespace (no breaks) */
     while (ch != EOF && isspace((unsigned char)ch))
     {
-        //when we encounter a newline, check for errors on that line and print them and reset the error flag
+        // handle errors at end of line
         if (ch == '\n')
         {
             if (errorLineFlag)
@@ -131,178 +132,179 @@ Token scanner(char *buffer, FILE *in_file, FILE *out_file, FILE *list_file)
                 fprintf(list_file, "ERROR %s not recognized in line %d.\n",
                         errors, currentLine);
                 errorLineFlag = 0;
-                errors[0] = '\0';   //clears the buffer after the error is printed
+                errors[0] = '\0';
             }
 
-            //increment the line number and print it to the listing file
             currentLine++;
             fprintf(list_file, "%d  ", currentLine);
         }
 
-        //consume the next character and echo it to the listing file
         ch = getc_echo(in_file, list_file);
     }
 
-    //if the character is the EOF, return the SCANEOF token and set the buffer to "EOF"
+    /* Handle EOF */
     if (ch == EOF)
     {
-    	if (errorLineFlag)
-            {
-                fprintf(list_file, "\nERROR %s not recognized in line %d.\n",
-                        errors, currentLine);
-                errorLineFlag = 0;
-                errors[0] = '\0';   //clears the buffer after the error is printed
-            }
-            
+        if (errorLineFlag)
+        {
+            fprintf(list_file, "\nERROR %s not recognized in line %d.\n",
+                    errors, currentLine);
+            errorLineFlag = 0;
+            errors[0] = '\0';
+        }
         strcpy(buffer, "EOF");
-        return SCANEOF;
+        tok = SCANEOF;
+        return tok; // single return at end is fine here
     }
 
     /* Identifiers / reserved words */
-    //if the first character is a letter, it is an identifer or reserved word
     if (isalpha((unsigned char)ch))
     {
-        //first letter of identifier is stored in the buffer
         add_char(buffer, (char)ch);
 
-        //get the next character to check if it is also a letter or digit
         int next = getc_raw(in_file);
         while (isalnum((unsigned char)next))
         {
-            //while the character is a letter or digit, consume it and add to the buffer
-            fputc(next, list_file); 
+            fputc(next, list_file);
             add_char(buffer, (char)next);
             next = getc_raw(in_file);
         }
-
-        //otherwise, this character is not valid, push it back and do not echo it, since it does not belong to the token
         ungetc_safe(next, in_file);
-        return check_reserved(buffer);
+
+        tok = check_reserved(buffer);
+        return tok; // identifiers handled here
     }
 
     /* Integers */
-    //if the first character is a digit, it is an integer literal
     if (isdigit((unsigned char)ch))
     {
-        //first digit is stored in the buffer
         add_char(buffer, (char)ch);
-        //store remaining digits in buffer
-        return scan_digits(buffer, in_file, list_file);
+        tok = scan_digits(buffer, in_file, list_file);
+        return tok;
     }
 
     /* Operators / punctuation */
-    //switch statement to check for single character operators and punctuation, and handle multi-character operators with lookahead
-    switch (ch)
+    else{
+        tok = handle_operator(buffer, ch, in_file, out_file, list_file);
+    }
+
+    return tok;
+}
+
+Token handle_operator(char *buffer, int ch, FILE *in_file, FILE *out_file, FILE *list_file)
+{
+    Token tok = ERROR; // default token
+
+    // single-character tokens
+    if (ch == '(')       tok = (add_char(buffer, '('), LPAREN);
+    else if (ch == ')')  tok = (add_char(buffer, ')'), RPAREN);
+    else if (ch == ';')  tok = (add_char(buffer, ';'), SEMICOLON);
+    else if (ch == ',')  tok = (add_char(buffer, ','), COMMA);
+    else if (ch == '+')  tok = (add_char(buffer, '+'), PLUSOP);
+    else if (ch == '*')  tok = (add_char(buffer, '*'), MULTOP);
+    else if (ch == '/')  tok = (add_char(buffer, '/'), DIVOP);
+    else if (ch == '!')  tok = (add_char(buffer, '!'), NOTOP);
+    else if (ch == '=')  tok = (add_char(buffer, '='), EQUALOP);
+
+    // multi-character / lookahead operators
+    else if (ch == ':')
     {
-        //single character tokens: add to buffer and return corresponding token
-        case '(': add_char(buffer, '('); return LPAREN;
-        case ')': add_char(buffer, ')'); return RPAREN;
-        case ';': add_char(buffer, ';'); return SEMICOLON;
-        case ',': add_char(buffer, ','); return COMMA;
-        case '+': add_char(buffer, '+'); return PLUSOP;
-        case '*': add_char(buffer, '*'); return MULTOP;
-        case '/': add_char(buffer, '/'); return DIVOP;
-        case '!': add_char(buffer, '!'); return NOTOP;
-        case '=': add_char(buffer, '='); return EQUALOP;
-
-        /* looking for the :=  operator*/
-        case ':':
+        int next = getc_raw(in_file);
+        if (next == '=')
         {
-            int next = getc_raw(in_file);
-            if (next == '=')
-            {
-                fputc(next, list_file);
-                strcpy(buffer, ":=");
-                return ASSIGNOP;
-            }
-
+            fputc(next, list_file);
+            strcpy(buffer, ":=");
+            tok = ASSIGNOP;
+        }
+        else
+        {
             ungetc_safe(next, in_file);
             strcpy(buffer, ":");
             lexical_error(buffer, 0, list_file);
-            return ERROR;
+            tok = ERROR;
         }
-
-        /* - or comment -- ... end of line */
-        case '-':
+    }
+    else if (ch == '-')
+    {
+        int next = getc_raw(in_file);
+        if (next == '-') // comment
         {
-            int next = getc_raw(in_file);
+            fputc(next, list_file);
+            int c = getc_echo(in_file, list_file);
+            while (c != '\n' && c != EOF)
+                c = getc_echo(in_file, list_file);
 
-            if (next == '-')
+            if (c == '\n')
             {
-                fputc(next, list_file);
-
-                /* consume rest of line as comment */
-                int c = getc_echo(in_file, list_file);
-                while (c != '\n' && c != EOF)
-                    c = getc_echo(in_file, list_file);
-
-                if (c == '\n')
+                if (errorLineFlag)
                 {
-                    if (errorLineFlag)
-                    {
-                        fprintf(list_file, "ERROR %s not recognized in line %d.\n",
-                                errors, currentLine);
-                        errorLineFlag = 0;
-                        errors[0] = '\0';   //clears the buffer after the error is printed
-                    }
-                    currentLine++;
-                    newLine = 1;
+                    fprintf(list_file, "ERROR %s not recognized in line %d.\n",
+                            errors, currentLine);
+                    errorLineFlag = 0;
+                    errors[0] = '\0';
                 }
-
-                return scanner(buffer, in_file, out_file, list_file);
+                currentLine++;
+                newLine = 1;
             }
 
+            tok = scanner(buffer, in_file, out_file, list_file);
+        }
+        else
+        {
             ungetc_safe(next, in_file);
             add_char(buffer, '-');
-            return MINUSOP;
+            tok = MINUSOP;
         }
-
-        /* <, <=, <> */
-        case '<':
-        {
-            add_char(buffer, '<');
-            int next = getc_raw(in_file);
-
-            if (next == '=')
-            {
-                fputc(next, list_file);
-                add_char(buffer, '=');
-                return LESSEQUALOP;
-            }
-            else if (next == '>')
-            {
-                fputc(next, list_file);
-                add_char(buffer, '>');
-                return NOTEQUALOP;
-            }
-
-            ungetc_safe(next, in_file);
-            return LESSOP;
-        }
-
-        /* >, >= */
-        case '>':
-        {
-            add_char(buffer, '>');
-            int next = getc_raw(in_file);
-
-            if (next == '=')
-            {
-                fputc(next, list_file);
-                add_char(buffer, '=');
-                return GREATEREQUALOP;
-            }
-
-            ungetc_safe(next, in_file);
-            return GREATEROP;
-        }
-
-        default:
-            add_char(buffer, (char)ch);
-            lexical_error(buffer, 0, list_file);
-            return ERROR;
     }
+    else if (ch == '<')
+    {
+        add_char(buffer, '<');
+        int next = getc_raw(in_file);
+
+        if (next == '=')
+        {
+            fputc(next, list_file);
+            add_char(buffer, '=');
+            tok = LESSEQUALOP;
+        }
+        else if (next == '>')
+        {
+            fputc(next, list_file);
+            add_char(buffer, '>');
+            tok = NOTEQUALOP;
+        }
+        else
+        {
+            ungetc_safe(next, in_file);
+            tok = LESSOP;
+        }
+    }
+    else if (ch == '>')
+    {
+        add_char(buffer, '>');
+        int next = getc_raw(in_file);
+        if (next == '=')
+        {
+            fputc(next, list_file);
+            add_char(buffer, '=');
+            tok = GREATEREQUALOP;
+        }
+        else
+        {
+            ungetc_safe(next, in_file);
+            tok = GREATEROP;
+        }
+    }
+    else // unknown character
+    {
+        add_char(buffer, (char)ch);
+        lexical_error(buffer, 0, list_file);
+        tok = ERROR;
+    }
+
+    return tok;
 }
+
 
 /* IMPORTANT: remove debug printing */
 void clear_buffer(char *buffer)
@@ -313,23 +315,25 @@ void clear_buffer(char *buffer)
 /* IMPORTANT: remove debug printing */
 Token check_reserved(char *buffer)
 {
-    if (strcmp(buffer, "begin") == 0) return BEGIN;
-    if (strcmp(buffer, "end") == 0) return END;
-    if (strcmp(buffer, "read") == 0) return READ;
-    if (strcmp(buffer, "write") == 0) return WRITE;
-    if (strcmp(buffer, "if") == 0) return IF;
-    if (strcmp(buffer, "then") == 0) return THEN;
-    if (strcmp(buffer, "else") == 0) return ELSE;
-    if (strcmp(buffer, "endif") == 0) return ENDIF;
-    if (strcmp(buffer, "while") == 0) return WHILE;
-    if (strcmp(buffer, "endwhile") == 0) return ENDWHILE;
-    if (strcmp(buffer, "true") == 0) return TRUEOP;
-    if (strcmp(buffer, "false") == 0) return FALSEOP;
-    if (strcmp(buffer, "null") == 0) return NULLOP;
-    if (strcmp(buffer, "and") == 0) return ANDOP;
-    if (strcmp(buffer, "or") == 0) return OROP;
+    Token tok = ID;  // default value
 
-    return ID;
+    if (strcmp(buffer, "begin") == 0) tok = BEGIN;
+    else if (strcmp(buffer, "end") == 0) tok = END;
+    else if (strcmp(buffer, "read") == 0) tok = READ;
+    else if (strcmp(buffer, "write") == 0) tok = WRITE;
+    else if (strcmp(buffer, "if") == 0) tok = IF;
+    else if (strcmp(buffer, "then") == 0) tok = THEN;
+    else if (strcmp(buffer, "else") == 0) tok = ELSE;
+    else if (strcmp(buffer, "endif") == 0) tok = ENDIF;
+    else if (strcmp(buffer, "while") == 0) tok = WHILE;
+    else if (strcmp(buffer, "endwhile") == 0) tok = ENDWHILE;
+    else if (strcmp(buffer, "true") == 0) tok = TRUEOP;
+    else if (strcmp(buffer, "false") == 0) tok = FALSEOP;
+    else if (strcmp(buffer, "null") == 0) tok = NULLOP;
+    else if (strcmp(buffer, "and") == 0) tok = ANDOP;
+    else if (strcmp(buffer, "or") == 0) tok = OROP;
+
+    return tok;
 }
 
 /*
@@ -338,58 +342,83 @@ Token check_reserved(char *buffer)
  */
 const char* token_to_string(Token token)
 {
+    const char* str = "UNKNOWN";  // default value
+
     switch(token)
     {
-        case BEGIN: return "BEGIN";
-        case END: return "END";
-        case READ: return "READ";
-        case WRITE: return "WRITE";
-        case IF: return "IF";
-        case THEN: return "THEN";
-        case ELSE: return "ELSE";
-        case ENDIF: return "ENDIF";
-        case WHILE: return "WHILE";
-        case ENDWHILE: return "ENDWHILE";
-
-        case ID: return "ID";
-        case INTLITERAL: return "INTLITERAL";
-
-        case FALSEOP: return "FALSEOP";
-        case TRUEOP: return "TRUEOP";
-        case NULLOP: return "NULLOP";
-
-        case LPAREN: return "LPAREN";
-        case RPAREN: return "RPAREN";
-        case SEMICOLON: return "SEMICOLON";
-        case COMMA: return "COMMA";
-
-        case ASSIGNOP: return "ASSIGNOP";
-
-        case PLUSOP: return "PLUSOP";
-        case MINUSOP: return "MINUSOP";
-        case MULTOP: return "MULTOP";
-        case DIVOP: return "DIVOP";
-
-        case NOTOP: return "NOTOP";
-
-        case LESSOP: return "LESSOP";
-        case LESSEQUALOP: return "LESSEQUALOP";
-        case GREATEROP: return "GREATEROP";
-        case GREATEREQUALOP: return "GREATEREQUALOP";
-
-        case EQUALOP: return "EQUALOP";
-        case NOTEQUALOP: return "NOTEQUALOP";
-
-        case ANDOP: return "ANDOP";
-        case OROP: return "OROP";
-
-        case SCANEOF: return "SCANEOF";
-        case ERROR: return "ERROR";
-
-        default: return "UNKNOWN";
+        case BEGIN:
+            str = "BEGIN";
+        case END:
+            if (token == END) str = "END";
+        case READ:
+            if (token == READ) str = "READ";
+        case WRITE:
+            if (token == WRITE) str = "WRITE";
+        case IF:
+            if (token == IF) str = "IF";
+        case THEN:
+            if (token == THEN) str = "THEN";
+        case ELSE:
+            if (token == ELSE) str = "ELSE";
+        case ENDIF:
+            if (token == ENDIF) str = "ENDIF";
+        case WHILE:
+            if (token == WHILE) str = "WHILE";
+        case ENDWHILE:
+            if (token == ENDWHILE) str = "ENDWHILE";
+        case ID:
+            if (token == ID) str = "ID";
+        case INTLITERAL:
+            if (token == INTLITERAL) str = "INTLITERAL";
+        case FALSEOP:
+            if (token == FALSEOP) str = "FALSEOP";
+        case TRUEOP:
+            if (token == TRUEOP) str = "TRUEOP";
+        case NULLOP:
+            if (token == NULLOP) str = "NULLOP";
+        case LPAREN:
+            if (token == LPAREN) str = "LPAREN";
+        case RPAREN:
+            if (token == RPAREN) str = "RPAREN";
+        case SEMICOLON:
+            if (token == SEMICOLON) str = "SEMICOLON";
+        case COMMA:
+            if (token == COMMA) str = "COMMA";
+        case ASSIGNOP:
+            if (token == ASSIGNOP) str = "ASSIGNOP";
+        case PLUSOP:
+            if (token == PLUSOP) str = "PLUSOP";
+        case MINUSOP:
+            if (token == MINUSOP) str = "MINUSOP";
+        case MULTOP:
+            if (token == MULTOP) str = "MULTOP";
+        case DIVOP:
+            if (token == DIVOP) str = "DIVOP";
+        case NOTOP:
+            if (token == NOTOP) str = "NOTOP";
+        case LESSOP:
+            if (token == LESSOP) str = "LESSOP";
+        case LESSEQUALOP:
+            if (token == LESSEQUALOP) str = "LESSEQUALOP";
+        case GREATEROP:
+            if (token == GREATEROP) str = "GREATEROP";
+        case GREATEREQUALOP:
+            if (token == GREATEREQUALOP) str = "GREATEREQUALOP";
+        case EQUALOP:
+            if (token == EQUALOP) str = "EQUALOP";
+        case NOTEQUALOP:
+            if (token == NOTEQUALOP) str = "NOTEQUALOP";
+        case ANDOP:
+            if (token == ANDOP) str = "ANDOP";
+        case OROP:
+            if (token == OROP) str = "OROP";
+        case SCANEOF:
+            if (token == SCANEOF) str = "SCANEOF";
+        case ERROR:
+            if (token == ERROR) str = "ERROR";
     }
+    return str;
 }
-
 //function to handle lexical errors
 int lexical_error(char *buffer, int flag, FILE *list_file)
 {
@@ -415,18 +444,10 @@ int lexical_error(char *buffer, int flag, FILE *list_file)
     }
 
     if (flag == 1){
-    	  return lexicalErrorCount;
+    	return lexicalErrorCount;
 	}
-      
-
     return 1;
 }
-
-// void token_ident(Token token, char *buffer)
-// {
-//     (void)token;
-//     (void)buffer;
-// }
 
 //helper function to add a character to the end of the buffer string
 void add_char(char *buffer, char ch)

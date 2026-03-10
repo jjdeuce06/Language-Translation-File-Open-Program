@@ -67,6 +67,7 @@
 
 	Token scanner(char * buffer, FILE * in_file, FILE * out_file, FILE * list_file);
 	Token scan_digits(char *buffer, FILE *in_file, FILE *list_file);
+	Token handle_operator(char *buffer, int ch, FILE *in_file, FILE *out_file, FILE *list_file);
 
 	const char* token_to_string(Token);
 
