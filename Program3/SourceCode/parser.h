@@ -43,6 +43,11 @@ int term(char *buffer);
 int factor(char *buffer);
 int condition(char *buffer);
 
+int c_expression(char *buffer);
+int c_term(char *buffer);
+int c_factor(char *buffer);
+int c_primary(char *buffer);
+
 static char statementBuffer[1024];
 
 /* ---------- private helper prototypes ---------- */
@@ -50,7 +55,10 @@ static void advance_token(void);
 static int is_statement_start(Token t);
 static int is_add_op(Token t);
 static int is_mult_op(Token t);
-static int is_rel_or_logical_op(Token t);
+
+static int is_rel_op(Token t);
+static int is_logical_op(Token t);
+
 static void clear_statement_buffer(void);
 static void append_statement(const char *text);
 static void print_completed_statement(void);

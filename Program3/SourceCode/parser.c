@@ -101,7 +101,9 @@ int match(Token expected, char *buffer)
     	lookahead == THEN ||
     	lookahead == ELSE ||
     	lookahead == ENDIF ||
-    	lookahead == ENDWHILE)
+    	lookahead == ENDWHILE||
+		lookahead == END ||
+    	lookahead == SCANEOF)
 	{
    		print_completed_statement();
     	clear_statement_buffer();
@@ -439,20 +441,12 @@ int term(char *buffer)
 int factor(char *buffer)
 {
     Token t = next_token(buffer);
-    int result = 0; // default
+    int result = 0;
 
-    if (t == ID)
-    {
-        result = match(ID, buffer);
-    }
-    else if (t == INTLITERAL)
-    {
-        result = match(INTLITERAL, buffer);
-    }
-    else if (t == LPAREN)
+    if (t == LPAREN)
     {
         result = match(LPAREN, buffer) &&
-                 condition(buffer) && //changed from expression to condition to test
+                 expression(buffer) &&
                  match(RPAREN, buffer);
     }
     else if (t == MINUSOP)
@@ -460,26 +454,19 @@ int factor(char *buffer)
         result = match(MINUSOP, buffer) &&
                  factor(buffer);
     }
-    else if (t == NOTOP)
+    else if (t == ID)
     {
-        result = match(NOTOP, buffer) &&
-                 factor(buffer);
+        result = match(ID, buffer);
     }
-    else if (t == TRUEOP)
+    else if (t == INTLITERAL)
     {
-        result = match(TRUEOP, buffer);
-    }
-    else if (t == FALSEOP)
-    {
-        result = match(FALSEOP, buffer);
-    }
-    else if (t == NULLOP)
-    {
-        result = match(NULLOP, buffer);
+        result = match(INTLITERAL, buffer);
     }
     else
     {
-        fprintf(listingFile,"\nSYNTAX ERROR: invalid factor '%s' on line %d\n",lookaheadBuffer, currentLine);
+        fprintf(listingFile,
+                "\nSYNTAX ERROR: invalid factor '%s' on line %d\n",
+                lookaheadBuffer, currentLine);
         syntaxErrorCount++;
         result = 0;
     }
@@ -492,29 +479,164 @@ int factor(char *buffer)
    ========================================================= */
 int condition(char *buffer)
 {
+    int result = 0;
+    Token t = next_token(buffer);
+
+    if (t == LPAREN)
+    {
+        result = match(LPAREN, buffer) &&
+                 condition(buffer) &&
+                 match(RPAREN, buffer);
+    }
+    else if (t == MINUSOP)
+    {
+        result = match(MINUSOP, buffer) &&
+                 condition(buffer);
+    }
+    else
+    {
+        result = c_expression(buffer);
+
+        while (result && is_logical_op(next_token(buffer)))
+        {
+            Token op = next_token(buffer);
+
+            if (!match(op, buffer))
+                result = 0;
+
+            if (result && !c_expression(buffer))
+                result = 0;
+        }
+    }
+
+    return result;
+}
+/* =========================================================
+   c_expression
+   ========================================================= */
+int c_expression(char *buffer)
+{
     int result = 1;
 
-    if (!expression(buffer))
+    if (!c_term(buffer))
+        result = 0;
+
+    while (result && is_rel_op(next_token(buffer)))
     {
+        Token op = next_token(buffer);
+
+        if (!match(op, buffer))
+            result = 0;
+
+        if (result && !c_term(buffer))
+            result = 0;
+    }
+
+    return result;
+}
+/* =========================================================
+   c_term
+   ========================================================= */
+int c_term(char *buffer)
+{
+    int result = 1;
+
+    if (!c_factor(buffer))
+        result = 0;
+
+    while (result && is_add_op(next_token(buffer)))
+    {
+        Token op = next_token(buffer);
+
+        if (!match(op, buffer))
+            result = 0;
+
+        if (result && !c_term(buffer))
+            result = 0;
+    }
+
+    return result;
+}
+/* =========================================================
+   c_factor
+   ========================================================= */
+int c_factor(char *buffer)
+{
+    int result = 1;
+
+    if (!c_primary(buffer))
+        result = 0;
+
+    while (result && is_mult_op(next_token(buffer)))
+    {
+        Token op = next_token(buffer);
+
+        if (!match(op, buffer))
+            result = 0;
+
+        if (result && !c_factor(buffer))
+            result = 0;
+    }
+
+    return result;
+}
+/* =========================================================
+   c_primary
+   ========================================================= */
+int c_primary(char *buffer)
+{
+    Token t = next_token(buffer);
+    int result = 0;
+
+    if (t == LPAREN)
+    {
+        result = match(LPAREN, buffer) &&
+                 c_expression(buffer) &&
+                 match(RPAREN, buffer);
+    }
+    else if (t == MINUSOP)
+    {
+        result = match(MINUSOP, buffer) &&
+                 c_primary(buffer);
+    }
+    else if (t == NOTOP)
+    {
+        result = match(NOTOP, buffer) &&
+                 c_primary(buffer);
+    }
+    else if (t == ID)
+    {
+        result = match(ID, buffer);
+    }
+    else if (t == INTLITERAL)
+    {
+        result = match(INTLITERAL, buffer);
+    }
+    else if (t == FALSEOP)
+    {
+        result = match(FALSEOP, buffer);
+    }
+    else if (t == TRUEOP)
+    {
+        result = match(TRUEOP, buffer);
+    }
+    else if (t == NULLOP)
+    {
+        result = match(NULLOP, buffer);
+    }
+    else
+    {
+        fprintf(listingFile,
+                "\nSYNTAX ERROR: invalid c_primary '%s' on line %d\n",
+                lookaheadBuffer, currentLine);
+        syntaxErrorCount++;
         result = 0;
     }
 
-    while (result && is_rel_or_logical_op(next_token(buffer)))
-    {
-        Token t = next_token(buffer);
-
-        if (!match(t, buffer))
-        {
-            result = 0;
-        }
-
-        if (result && !expression(buffer))
-        {
-            result = 0;
-        }
-    }
     return result;
 }
+
+
 
 /* =========================================================
    helper: does token begin a statement?
@@ -545,18 +667,23 @@ static int is_mult_op(Token t)
 }
 
 /* =========================================================
-   helper: relational or logical operators for condition()
+   helper: relational operators for condition()
    ========================================================= */
-static int is_rel_or_logical_op(Token t)
+static int is_rel_op(Token t)
 {
     return (t == LESSOP ||
             t == LESSEQUALOP ||
             t == GREATEROP ||
             t == GREATEREQUALOP ||
             t == EQUALOP ||
-            t == NOTEQUALOP ||
-            t == ANDOP ||
-            t == OROP);
+            t == NOTEQUALOP);
+}
+/* =========================================================
+   helper: logical operators for condition()
+   ========================================================= */
+static int is_logical_op(Token t)
+{
+    return (t == ANDOP || t == OROP);
 }
 
 /* =========================================================
@@ -585,5 +712,5 @@ static void append_statement(const char *text)
    ========================================================= */
 static void print_completed_statement(void)
 {
-    fprintf(outputFile, "Completed statement: %s\n", statementBuffer);
+    fprintf(outputFile, "\nCompleted statement: %s\n\n", statementBuffer);
 }
