@@ -1,0 +1,36 @@
+-- Example program
+begin
+read (A, BB);
+X:= A + BB;
+Y := A - BB; --a comment
+write (A, BB, X, Y);
+X := A - 5;
+write (A, 5, X);
+X := BB * -5;
+write (BB, 5, X);
+IF (!(A / 2 > 7)) then
+Write (A);
+else
+a:=7;
+ENDif
+while (fred > 4)
+if ( t >= true) then
+write(G);
+endif
+endwhile
+if(6 < O) then
+write(o);
+if(a <= false)
+then
+if(x = null)
+then
+write(x);
+endif
+else
+if(a <> false)
+then
+write(a);
+endif
+endif
+endif
+end
