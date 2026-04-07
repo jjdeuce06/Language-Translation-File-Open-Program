@@ -22,7 +22,7 @@
  * - parses from <system goal>
  * - prints totals / closes files in wrapup
  */
-int main(int argc, char *argv[])
+int main(int argc, char *argv[])  
 {
     FILE_STATUS status;
     char buffer[128];

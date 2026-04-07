@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "scanner.h"
 #include "file_util.h"
+#include "action.h"
 
 int syntaxErrorCount = 0;
 int semanticErrorCount = 0;
@@ -31,8 +32,6 @@ void parser_startup(void)
 /* =========================================================
    parser_finish
    - prints totals to the listing file
-   - assignment wants lexical + syntax totals at the end
-   - semantic included too because your instructions mention it
    ========================================================= */
 void parser_finish(void)
 {
@@ -43,8 +42,6 @@ void parser_finish(void)
 
 /* =========================================================
    advance_token
-   - destructive scanner call
-   - stores next token and its lexeme into parser lookahead
    ========================================================= */
 static void advance_token(void)
 {
@@ -53,8 +50,6 @@ static void advance_token(void)
 
 /* =========================================================
    next_token
-   - non-destructive from parser's perspective
-   - returns saved lookahead token and copies lexeme out
    ========================================================= */
 Token next_token(char *buffer)
 {
@@ -64,66 +59,61 @@ Token next_token(char *buffer)
 
 /* =========================================================
    match
-   - checks whether current lookahead == expected
-   - prints expected token and actual token to output file
-   - appends token text to statement buffer
-   - if matched, advances lookahead
-   - if semicolon matched, prints completed statement
    ========================================================= */
 int match(Token expected, char *buffer)
 {
-    int result = 1; 
+    int result = 1;
 
-    /* Give caller the current lexeme text */
     strcpy(buffer, lookaheadBuffer);
 
-    /* Required parser output: expected token vs actual token */
     fprintf(outputFile,
-            "Parser match -> expected: %-14s actual: %-14s lexeme: %s\n",token_to_string(expected),
-            token_to_string(lookahead),lookaheadBuffer);
+            "Parser match -> expected: %-14s actual: %-14s lexeme: %s\n",
+            token_to_string(expected),
+            token_to_string(lookahead),
+            lookaheadBuffer);
 
-    /* Save token text into statement buffer */
     append_statement(lookaheadBuffer);
 
-    /* Mismatch = syntax error */
     if (lookahead != expected)
     {
         fprintf(listingFile,
-                "\nSYNTAX ERROR: expected %s but found %s (lexeme: %s) on line %d\n",token_to_string(expected),
-                token_to_string(lookahead),lookaheadBuffer,currentLine);
+                "\nSYNTAX ERROR: expected %s but found %s (lexeme: %s) on line %d\n",
+                token_to_string(expected),
+                token_to_string(lookahead),
+                lookaheadBuffer,
+                currentLine);
         syntaxErrorCount++;
-        result = 0;  // mark failure
+        result = 0;
     }
 
-    /* If statement ended, print it now */
     if (lookahead == BEGIN ||
-    	lookahead == SEMICOLON ||
-    	lookahead == THEN ||
-    	lookahead == ELSE ||
-    	lookahead == ENDIF ||
-    	lookahead == ENDWHILE||
-		lookahead == END ||
-    	lookahead == SCANEOF)
-	{
-   		print_completed_statement();
-    	clear_statement_buffer();
-	}
+        lookahead == SEMICOLON ||
+        lookahead == THEN ||
+        lookahead == ELSE ||
+        lookahead == ENDIF ||
+        lookahead == ENDWHILE ||
+        lookahead == END ||
+        lookahead == SCANEOF)
+    {
+        print_completed_statement();
+        clear_statement_buffer();
+    }
 
-    /* Advance token only if not EOF and last match succeeded */
     if (result)
     {
         advance_token();
     }
-    return result; 
+
+    return result;
 }
 
 /* =========================================================
    recover_to_semicolon
-   - keep scanning until semicolon or a safe block-ending token
    ========================================================= */
 int recover_to_semicolon(char *buffer)
 {
     int result = 1;
+
     while (lookahead != SEMICOLON &&
            lookahead != SCANEOF &&
            lookahead != END &&
@@ -133,19 +123,19 @@ int recover_to_semicolon(char *buffer)
         advance_token();
     }
 
-    /* If we stopped at semicolon, consume it so parsing can continue */
     if (lookahead == SEMICOLON)
     {
         result = match(SEMICOLON, buffer) && result;
     }
+
     clear_statement_buffer();
-    return result; 
+    return result;
 }
 
 /* =========================================================
    system_goal
    production 44:
-   <system goal> -> <program> SCANEOF
+   <system goal> -> <program> SCANEOF #finish
    ========================================================= */
 int system_goal(char *buffer)
 {
@@ -157,22 +147,25 @@ int system_goal(char *buffer)
     if (!match(SCANEOF, buffer))
         ok = 0;
 
+    finish();
+
     return ok;
 }
 
 /* =========================================================
    program
    production 1:
-   <program> -> BEGIN <statement list> END
+   <program> -> #start BEGIN <statement list> END
    ========================================================= */
 int program(char *buffer)
 {
     int ok = 1;
 
+    start();
+
     if (!match(BEGIN, buffer))
         ok = 0;
-	
-	
+
     if (!statement_list(buffer))
         ok = 0;
 
@@ -184,8 +177,6 @@ int program(char *buffer)
 
 /* =========================================================
    statement_list
-   production 2:
-   <statement list> -> <statement> {<statement list>}
    ========================================================= */
 int statement_list(char *buffer)
 {
@@ -208,24 +199,30 @@ int statement_list(char *buffer)
 
 /* =========================================================
    statement
-   productions:
-   3. ID := <expression>;
-   4. READ ( <id list> );
-   5. WRITE ( <expr list> );
-   6. IF ( <condition> ) THEN <StatementList> <IFTail>
-   9. WHILE ( <condition> ) <StatementList> ENDWHILE
    ========================================================= */
 int statement(char *buffer)
 {
     Token t = next_token(buffer);
-    int result = 0; // default failure
+    int result = 0;
 
     if (t == ID)
     {
+        char lhs[128];
+        strcpy(lhs, lookaheadBuffer);
+
         result = match(ID, buffer) &&
                  match(ASSIGNOP, buffer) &&
-                 expression(buffer) &&
-                 match(SEMICOLON, buffer);
+                 expression(buffer);
+
+        if (result)
+        {
+            assign(lhs);
+        }
+
+        if (result)
+        {
+            result = match(SEMICOLON, buffer);
+        }
     }
     else if (t == READ)
     {
@@ -254,43 +251,50 @@ int statement(char *buffer)
                  if_tail(buffer);
     }
     else if (t == WHILE)
-	{
-    	result = match(WHILE, buffer) &&
-            	match(LPAREN, buffer) &&
-            	condition(buffer) &&
-            	match(RPAREN, buffer);
+    {
+        open_tmp();
 
-    	if (result)
-    	{
-        	print_completed_statement();
-        	clear_statement_buffer();
-    	}
+        result = match(WHILE, buffer) &&
+                 match(LPAREN, buffer) &&
+                 condition(buffer) &&
+                 match(RPAREN, buffer);
 
-    	if (result)
-    	{
-        	result = statement_list(buffer) &&
-            match(ENDWHILE, buffer);
-    	}
-	}
+        if (result)
+        {
+            print_completed_statement();
+            clear_statement_buffer();
+        }
+
+        if (result)
+        {
+            result = statement_list(buffer) &&
+                     match(ENDWHILE, buffer);
+        }
+
+        if (result)
+        {
+            write_temp();
+        }
+    }
     else
     {
-        fprintf(listingFile,"\nSYNTAX ERROR: invalid start of statement on line %d\n", currentLine);
+        fprintf(listingFile,
+                "\nSYNTAX ERROR: invalid start of statement on line %d\n",
+                currentLine);
         syntaxErrorCount++;
         result = 0;
     }
 
-    return result; 
+    return result;
 }
+
 /* =========================================================
    if_tail
-   productions:
-   7. <IFTail> -> ELSE <StatementList> ENDIF
-   8. <IFTail> -> ENDIF
    ========================================================= */
 int if_tail(char *buffer)
 {
     Token t = next_token(buffer);
-    int result = 0; 
+    int result = 0;
 
     if (t == ELSE)
     {
@@ -298,59 +302,96 @@ int if_tail(char *buffer)
                  statement_list(buffer) &&
                  match(ENDIF, buffer);
     }
-    else if (t == ENDIF){
+    else if (t == ENDIF)
+    {
         result = match(ENDIF, buffer);
     }
     else
     {
-        fprintf(listingFile,"\nSYNTAX ERROR: expected ELSE or ENDIF on line %d\n",currentLine);
+        fprintf(listingFile,
+                "\nSYNTAX ERROR: expected ELSE or ENDIF on line %d\n",
+                currentLine);
         syntaxErrorCount++;
         result = 0;
     }
-    return result; 
+
+    return result;
 }
 
 /* =========================================================
    id_list
    production 10:
-   <id list> -> ID {, <id list>}
-   practical loop version:
-   ID { , ID }
+   <id list> -> <ident> #read_id {, <id list>}
    ========================================================= */
 int id_list(char *buffer)
 {
     int result = 1;
-    if (!match(ID, buffer))
+
+    if (next_token(buffer) == ID)
+    {
+        char idname[128];
+        strcpy(idname, lookaheadBuffer);
+
+        if (!match(ID, buffer))
+        {
+            result = 0;
+        }
+        else
+        {
+            read_id(idname);
+        }
+    }
+    else
     {
         result = 0;
     }
+
     while (result && next_token(buffer) == COMMA)
     {
         if (!match(COMMA, buffer))
         {
             result = 0;
         }
-        if (result && !match(ID, buffer))
+
+        if (result && next_token(buffer) == ID)
+        {
+            char idname[128];
+            strcpy(idname, lookaheadBuffer);
+
+            if (!match(ID, buffer))
+            {
+                result = 0;
+            }
+            else
+            {
+                read_id(idname);
+            }
+        }
+        else if (result)
         {
             result = 0;
         }
     }
+
     return result;
 }
 
 /* =========================================================
    expr_list
    production 11:
-   <expr list> -> <expression> {, <expr list>}
-   practical loop version:
-   expression { , expression }
+   <expr list> -> <expression> #write_expr {, <expr list>}
    ========================================================= */
 int expr_list(char *buffer)
 {
-    int result = 1; 
+    int result = 1;
+
     if (!expression(buffer))
     {
         result = 0;
+    }
+    else
+    {
+        write_expr();
     }
 
     while (result && next_token(buffer) == COMMA)
@@ -359,18 +400,24 @@ int expr_list(char *buffer)
         {
             result = 0;
         }
+
         if (result && !expression(buffer))
         {
             result = 0;
         }
+        else if (result)
+        {
+            write_expr();
+        }
     }
+
     return result;
 }
 
 /* =========================================================
    expression
    production 12:
-   <expression> -> <term> {<add_op> <term>}
+   <expression> -> <term> {<add_op> <term>} #gen_infix
    ========================================================= */
 int expression(char *buffer)
 {
@@ -383,25 +430,39 @@ int expression(char *buffer)
 
     while (result && is_add_op(next_token(buffer)))
     {
+        char op_text[32];
         Token t = next_token(buffer);
+
+        strcpy(op_text, lookaheadBuffer);
 
         if (!match(t, buffer))
         {
             result = 0;
         }
 
+        if (result)
+        {
+            process_op(op_text);
+        }
+
         if (result && !term(buffer))
         {
             result = 0;
         }
+
+        if (result)
+        {
+            gen_infix();
+        }
     }
-    return result; 
+
+    return result;
 }
 
 /* =========================================================
    term
    production 13:
-   <term> -> <factor> {<mult_op> <factor>}
+   <term> -> <factor> {<mult_op> <factor>} #gen_infix
    ========================================================= */
 int term(char *buffer)
 {
@@ -414,29 +475,37 @@ int term(char *buffer)
 
     while (result && is_mult_op(next_token(buffer)))
     {
+        char op_text[32];
         Token t = next_token(buffer);
+
+        strcpy(op_text, lookaheadBuffer);
 
         if (!match(t, buffer))
         {
             result = 0;
         }
 
+        if (result)
+        {
+            process_op(op_text);
+        }
+
         if (result && !factor(buffer))
         {
             result = 0;
         }
+
+        if (result)
+        {
+            gen_infix();
+        }
     }
 
-    return result; 
+    return result;
 }
 
 /* =========================================================
    factor
-   productions handled here:
-   14. ( <expression> )
-   15. - <factor>
-   16. ID
-   17. INTLITERAL
    ========================================================= */
 int factor(char *buffer)
 {
@@ -451,16 +520,33 @@ int factor(char *buffer)
     }
     else if (t == MINUSOP)
     {
+        /* parse unary minus as usual */
         result = match(MINUSOP, buffer) &&
                  factor(buffer);
     }
     else if (t == ID)
     {
+        char idname[128];
+        strcpy(idname, lookaheadBuffer);
+
         result = match(ID, buffer);
+
+        if (result)
+        {
+            process_id(idname);
+        }
     }
     else if (t == INTLITERAL)
     {
+        char lit[128];
+        strcpy(lit, lookaheadBuffer);
+
         result = match(INTLITERAL, buffer);
+
+        if (result)
+        {
+            process_literal(lit);
+        }
     }
     else
     {
@@ -473,9 +559,9 @@ int factor(char *buffer)
 
     return result;
 }
+
 /* =========================================================
    condition
-   parse an expression, then allow relational/logical chaining.
    ========================================================= */
 int condition(char *buffer)
 {
@@ -487,11 +573,21 @@ int condition(char *buffer)
         result = match(LPAREN, buffer) &&
                  condition(buffer) &&
                  match(RPAREN, buffer);
+
+        if (result)
+        {
+            gen_condition();
+        }
     }
     else if (t == MINUSOP)
     {
         result = match(MINUSOP, buffer) &&
                  condition(buffer);
+
+        if (result)
+        {
+            gen_condition();
+        }
     }
     else
     {
@@ -499,20 +595,31 @@ int condition(char *buffer)
 
         while (result && is_logical_op(next_token(buffer)))
         {
+            char op_text[32];
             Token op = next_token(buffer);
+
+            strcpy(op_text, lookaheadBuffer);
 
             if (!match(op, buffer))
                 result = 0;
 
+            if (result)
+                process_op(op_text);
+
             if (result && !c_expression(buffer))
                 result = 0;
+
+            if (result)
+                gen_condition();
         }
     }
 
     return result;
 }
+
 /* =========================================================
    c_expression
+   production 21
    ========================================================= */
 int c_expression(char *buffer)
 {
@@ -523,19 +630,30 @@ int c_expression(char *buffer)
 
     while (result && is_rel_op(next_token(buffer)))
     {
+        char op_text[32];
         Token op = next_token(buffer);
+
+        strcpy(op_text, lookaheadBuffer);
 
         if (!match(op, buffer))
             result = 0;
 
+        if (result)
+            process_op(op_text);
+
         if (result && !c_term(buffer))
             result = 0;
+
+        if (result)
+            gen_infix();
     }
 
     return result;
 }
+
 /* =========================================================
    c_term
+   production 22
    ========================================================= */
 int c_term(char *buffer)
 {
@@ -546,19 +664,30 @@ int c_term(char *buffer)
 
     while (result && is_add_op(next_token(buffer)))
     {
+        char op_text[32];
         Token op = next_token(buffer);
+
+        strcpy(op_text, lookaheadBuffer);
 
         if (!match(op, buffer))
             result = 0;
 
+        if (result)
+            process_op(op_text);
+
         if (result && !c_term(buffer))
             result = 0;
+
+        if (result)
+            gen_infix();
     }
 
     return result;
 }
+
 /* =========================================================
    c_factor
+   production 23
    ========================================================= */
 int c_factor(char *buffer)
 {
@@ -569,17 +698,27 @@ int c_factor(char *buffer)
 
     while (result && is_mult_op(next_token(buffer)))
     {
+        char op_text[32];
         Token op = next_token(buffer);
+
+        strcpy(op_text, lookaheadBuffer);
 
         if (!match(op, buffer))
             result = 0;
 
+        if (result)
+            process_op(op_text);
+
         if (result && !c_factor(buffer))
             result = 0;
+
+        if (result)
+            gen_infix();
     }
 
     return result;
 }
+
 /* =========================================================
    c_primary
    ========================================================= */
@@ -606,23 +745,63 @@ int c_primary(char *buffer)
     }
     else if (t == ID)
     {
+        char idname[128];
+        strcpy(idname, lookaheadBuffer);
+
         result = match(ID, buffer);
+
+        if (result)
+        {
+            process_id(idname);
+        }
     }
     else if (t == INTLITERAL)
     {
+        char lit[128];
+        strcpy(lit, lookaheadBuffer);
+
         result = match(INTLITERAL, buffer);
+
+        if (result)
+        {
+            process_literal(lit);
+        }
     }
     else if (t == FALSEOP)
     {
+        char op_text[32];
+        strcpy(op_text, lookaheadBuffer);
+
         result = match(FALSEOP, buffer);
+
+        if (result)
+        {
+            process_op(op_text);
+        }
     }
     else if (t == TRUEOP)
     {
+        char op_text[32];
+        strcpy(op_text, lookaheadBuffer);
+
         result = match(TRUEOP, buffer);
+
+        if (result)
+        {
+            process_op(op_text);
+        }
     }
     else if (t == NULLOP)
     {
+        char op_text[32];
+        strcpy(op_text, lookaheadBuffer);
+
         result = match(NULLOP, buffer);
+
+        if (result)
+        {
+            process_op(op_text);
+        }
     }
     else
     {
@@ -635,8 +814,6 @@ int c_primary(char *buffer)
 
     return result;
 }
-
-
 
 /* =========================================================
    helper: does token begin a statement?
@@ -678,6 +855,7 @@ static int is_rel_op(Token t)
             t == EQUALOP ||
             t == NOTEQUALOP);
 }
+
 /* =========================================================
    helper: logical operators for condition()
    ========================================================= */
@@ -699,7 +877,6 @@ static void clear_statement_buffer(void)
    ========================================================= */
 static void append_statement(const char *text)
 {
-    /* Avoid buffer overflow */
     if (strlen(statementBuffer) + strlen(text) + 2 < sizeof(statementBuffer))
     {
         strcat(statementBuffer, text);
