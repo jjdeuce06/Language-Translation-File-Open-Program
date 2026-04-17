@@ -13,6 +13,7 @@ int currentLine = 1;
 //File declarations
 FILE* inputFile = NULL;
 FILE* outputFile = NULL;
+FILE* cFile = NULL;
 FILE* listingFile = NULL;
 FILE* tempFile1 = NULL;
 FILE* tempFile2 = NULL;
@@ -20,6 +21,7 @@ FILE* tempFile2 = NULL;
 //File name declarations to extract from the user
 char inputFileName[MAX_FILENAME_LENGTH] = "";
 char outputFileName[MAX_FILENAME_LENGTH] = "";
+char cFileName[MAX_FILENAME_LENGTH] = "";
 char listingFileName[MAX_FILENAME_LENGTH] = "";
 char tempFileName1[MAX_FILENAME_LENGTH] = "";
 char tempFileName2[MAX_FILENAME_LENGTH] = "";
@@ -105,6 +107,8 @@ void openFiles(void){
     	listingFile = openListingFile();
     	tempFile1 = openTempFile1();
     	tempFile2 = openTempFile2();
+        createCFileName();
+        cFile = openCFile();
 	}
 }
 
@@ -397,6 +401,18 @@ FILE* openOutputFile(){
 	}
 	return file;
 }
+//Purpose: Opens the validated c file (global outputFileName) for writing.
+FILE* openCFile()
+{
+    cFile = fopen(cFileName, "w");
+
+    if (cFile == NULL)
+    {
+        printf("Error: Could not open C file: %s\n", cFileName);
+        return NULL;
+    }
+    return cFile;
+}
 
 //Purpose: Opens the listing file (global listingFileName) for writing.
 FILE* openListingFile(){
@@ -473,6 +489,10 @@ void files_close() { // closes all the files
         fclose(tempFile2);
         tempFile2 = NULL;
     }
+    if (cFile) {
+        fclose(cFile);
+        cFile = NULL;
+    }
     
     printf("All Files Closed.\n");
 }
@@ -512,7 +532,19 @@ void createListingFileName(void)
 	}
         
 }
+void createCFileName(void)
+{
+    strcpy(cFileName, outputFileName);
 
+    char *dot = strrchr(cFileName, '.');
+    if (dot != NULL){
+    	strcpy(dot, ".c");
+	}   
+    else{
+    	strcat(cFileName, ".c");
+	}
+        
+}
 //Purpose: Generates unique temporary file names for tempFileName1 and tempFileName2.
 void createTempFileNames(void)
 {

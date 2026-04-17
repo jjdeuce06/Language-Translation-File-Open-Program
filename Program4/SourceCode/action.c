@@ -127,35 +127,33 @@ void finish(void)
     int i;
     time_t now;
     char *stamp;
-    printf("---------DEBUG: finish called----------\n");
-
     now = time(NULL);
     stamp = ctime(&now);
 
-    fprintf(outputFile, "/*\n");
-    fprintf(outputFile, "C program of MICRO program %s\n", inputFileName);
+    fprintf(cFile, "/*\n");
+    fprintf(cFile, "C program of MICRO program %s\n", inputFileName);
     if (stamp != NULL)
     {
-        fprintf(outputFile, "%s", stamp);
+        fprintf(cFile, "%s", stamp);
     }
-    fprintf(outputFile, "*/\n");
-    fprintf(outputFile, "#include<stdio.h>\n");
-    fprintf(outputFile, "main()\n");
-    fprintf(outputFile, "{\n");
+    fprintf(cFile, "*/\n");
+    fprintf(cFile, "#include<stdio.h>\n");
+    fprintf(cFile, "int main(void)\n");
+    fprintf(cFile, "{\n");
 
     for (i = 0; i < symbol_count; i++)
     {
-        fprintf(outputFile, "int %s;\n", symbols[i]);
+        fprintf(cFile, "int %s;\n", symbols[i]);
     }
 
     for (i = 0; i < code_count; i++)
     {
-        fprintf(outputFile, "%s\n", code_lines[i]);
+        fprintf(cFile, "%s\n", code_lines[i]);
     }
 
-    fprintf(outputFile, "return 0;\n");
-    fprintf(outputFile, "}\n");
-    fprintf(outputFile, "/* PROGRAMED COMPILED WITH NO ERRORS. */\n");
+    fprintf(cFile, "return 0;\n");
+    fprintf(cFile, "}\n");
+    fprintf(cFile, "/* PROGRAMED COMPILED WITH NO ERRORS. */\n");
 }
 
 void process_id(const char *id)

@@ -22,6 +22,7 @@
 	//GLOBAL FILE HANDLES
 	extern FILE* inputFile;
 	extern FILE* outputFile;
+	extern FILE* cFile;
 	extern FILE* listingFile;
 	extern FILE* tempFile1;
 	extern FILE* tempFile2;
@@ -56,10 +57,12 @@
 
     void createListingFileName();//creates listing file name
 	void createTempFileNames();// creates temp file names
+	void createCFileName(void);// creates C file names
 
 	//File Openers
 	FILE* openInputFile();
 	FILE* openOutputFile();
+	FILE* openCFile();
 	FILE* openListingFile();
 	FILE* openTempFile1();
 	FILE* openTempFile2();
