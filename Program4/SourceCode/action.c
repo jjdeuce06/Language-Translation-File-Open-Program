@@ -49,27 +49,30 @@ static void push_expr(const char *text)
 
 static int pop_expr(char *out)
 {
-    if (expr_top < 0)
-    {
-        return 0;
-    }
+    int success = 0;
 
-    strcpy(out, expr_stack[expr_top]);
-    expr_top--;
-    return 1;
+    if (expr_top >= 0)
+    {
+        strcpy(out, expr_stack[expr_top]);
+        expr_top--;
+        success = 1;
+    }
+    return success;
 }
 
 static int symbol_exists(const char *name)
 {
+    int found = 0;
     int i;
+
     for (i = 0; i < symbol_count; i++)
     {
         if (strcmp(symbols[i], name) == 0)
         {
-            return 1;
+            found = 1;
         }
     }
-    return 0;
+    return found;
 }
 
 static void add_symbol(const char *name)
@@ -209,18 +212,22 @@ void gen_infix(void)
     char temp[MAX_TEXT];
     char line[MAX_LINE];
 
-    if (!pop_expr(right)) return;
-    if (!pop_expr(op)) return;
-    if (!pop_expr(left)) return;
+    int check = 1;
 
-    temp_num++;
-    sprintf(temp, "Temp%d", temp_num);
-    add_symbol(temp);
+    if (!pop_expr(right)) check = 0;
+    if (check && !pop_expr(op)) check = 0;
+    if (check && !pop_expr(left)) check = 0;
 
-    sprintf(line, "%s = %s %s %s;", temp, left, op, right);
-    add_code(line);
+    if(check){
+        temp_num++;
+        sprintf(temp, "Temp%d", temp_num);
+        add_symbol(temp);
 
-    push_expr(temp);
+        sprintf(line, "%s = %s %s %s;", temp, left, op, right);
+        add_code(line);
+
+        push_expr(temp);
+    }
 }
 
 void gen_condition(void)
@@ -233,12 +240,13 @@ void assign(const char *lhs)
 {
     char rhs[MAX_TEXT];
     char line[MAX_LINE];
-
-    if (!pop_expr(rhs)) return;
-
-    add_symbol(lhs);
-    sprintf(line, "%s = %s;", lhs, rhs);
-    add_code(line);
+    int ok = 1;
+    if (!pop_expr(rhs)) ok = 0;
+    if(ok){
+        add_symbol(lhs);
+        sprintf(line, "%s = %s;", lhs, rhs);
+        add_code(line);
+    }
 }
 
 void read_id(const char *id)
@@ -254,11 +262,13 @@ void write_expr(void)
 {
     char expr[MAX_TEXT];
     char line[MAX_LINE];
+    int ok = 1;
 
-    if (!pop_expr(expr)) return;
-
-    sprintf(line, "printf(\"%%d\\n\", %s);", expr);
-    add_code(line);
+    if (!pop_expr(expr)) ok =0;
+    if(ok){
+        sprintf(line, "printf(\"%%d\\n\", %s);", expr);
+        add_code(line);
+    }
 }
 
 void open_tmp(void)

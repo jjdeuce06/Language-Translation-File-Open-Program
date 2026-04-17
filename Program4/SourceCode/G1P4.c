@@ -4,7 +4,7 @@
         - John Gerega: ger9822@pennwest.edu
         - Luke Ruffing: RUF96565@pennwest.edu
     COURSE: Language Translation - CMSC-4180-100
-    PROGRAM NAME: Parser
+    PROGRAM NAME: Code Generator 
 */
 /***********END HEADER**************/
 
