@@ -100,9 +100,9 @@ static void add_code(const char *line)
     }
 
     /* keep temp file behavior alive too */
-    if (tempFile1 != NULL)
+    if (tempFile2 != NULL)
     {
-        fprintf(tempFile1, "%s\n", line);
+        fprintf(tempFile2, "%s\n", line);
     }
 }
 
@@ -127,6 +127,7 @@ void finish(void)
     int i;
     time_t now;
     char *stamp;
+    printf("---------DEBUG: finish called----------\n");
 
     now = time(NULL);
     stamp = ctime(&now);
