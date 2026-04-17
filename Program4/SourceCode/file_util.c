@@ -400,14 +400,18 @@ FILE* openOutputFile(){
 
 //Purpose: Opens the listing file (global listingFileName) for writing.
 FILE* openListingFile(){
+    time_t now;
+    now = time(NULL);
 	
 	FILE* file = fopen(listingFileName, "w"); // open the file for reading
     if (file == NULL) {
         printf("Error: Could not open listing file: %s\n", listingFileName);
         return NULL;  
     }
+    fprintf(file, "Listing of MICRO program %s %s", inputFileName, ctime(&now));
     return file;
 }
+
 
 //Purpose: Opens temp file #1 (global tempFileName1) for writing.
 FILE* openTempFile1(){
