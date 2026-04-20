@@ -1,0 +1,34 @@
+Parser match -> expected: BEGIN          actual: BEGIN          lexeme: begin
+
+Completed statement: begin 
+
+Parser match -> expected: WHILE          actual: WHILE          lexeme: while
+Parser match -> expected: LPAREN         actual: LPAREN         lexeme: (
+Parser match -> expected: ID             actual: ID             lexeme: a
+Parser match -> expected: LESSOP         actual: LESSOP         lexeme: <
+Parser match -> expected: ID             actual: ID             lexeme: b
+Parser match -> expected: RPAREN         actual: RPAREN         lexeme: )
+
+Completed statement: while ( a < b ) 
+
+Parser match -> expected: ID             actual: ID             lexeme: a
+Parser match -> expected: ASSIGNOP       actual: ASSIGNOP       lexeme: :=
+Parser match -> expected: ID             actual: ID             lexeme: a
+Parser match -> expected: PLUSOP         actual: PLUSOP         lexeme: +
+Parser match -> expected: INTLITERAL     actual: INTLITERAL     lexeme: 1
+Parser match -> expected: SEMICOLON      actual: SEMICOLON      lexeme: ;
+
+Completed statement: a := a + 1 ; 
+
+Parser match -> expected: ENDWHILE       actual: ENDWHILE       lexeme: endwhile
+
+Completed statement: endwhile 
+
+Parser match -> expected: END            actual: END            lexeme: end
+
+Completed statement: end 
+
+Parser match -> expected: SCANEOF        actual: SCANEOF        lexeme: EOF
+
+Completed statement: EOF 
+
