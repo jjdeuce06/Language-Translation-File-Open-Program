@@ -1,0 +1,3 @@
+BEGIN
+a := BB - 314 * c;
+END

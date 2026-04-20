@@ -249,7 +249,7 @@ void process_op(const char *op)
     }
 }
 
-void gen_infix(void)
+/*void gen_infix(void)
 {
     char right[MAX_TEXT];
     char op[MAX_TEXT];
@@ -280,6 +280,32 @@ void gen_infix(void)
 
         	push_expr(temp);
 		}
+    }
+}*/
+void gen_infix(void)
+{
+    char right[MAX_TEXT];
+    char op[MAX_TEXT];
+    char left[MAX_TEXT];
+    char temp[MAX_TEXT];
+    char line[MAX_LINE];
+
+    int check = 1;
+
+    if (!pop_expr(right)) check = 0;
+    if (check && !pop_expr(op)) check = 0;
+    if (check && !pop_expr(left)) check = 0;
+
+    if (check)
+    {
+        temp_num++;
+        sprintf(temp, "Temp%d", temp_num);
+        add_symbol(temp);
+
+        sprintf(line, "%s = %s %s %s;", temp, left, op, right);
+        add_code(line);
+
+        push_expr(temp);
     }
 }
 
@@ -379,3 +405,4 @@ void write_temp(void)
         building_while_condition = 0;
     }
 }
+
