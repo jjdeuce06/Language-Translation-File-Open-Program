@@ -19,7 +19,7 @@ void process_op(const char *op);
 void gen_infix(void);
 void gen_condition(void);
 
-/* while hooks required by assignment */
+/* while hookss */
 void open_tmp(void);
 void write_temp(void);
 

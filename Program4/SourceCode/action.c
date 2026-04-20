@@ -130,7 +130,7 @@ static void add_code(const char *line)
         code_count++;
     }
 
-    /* also write to temp file for debugging/assignment requirement */
+    /* write to temp file for debugging */
     if (tempFile2 != NULL)
     {
         fprintf(tempFile2, "%s\n", line);
