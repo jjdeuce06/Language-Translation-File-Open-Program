@@ -1,0 +1,5 @@
+begin
+if (a < b) then
+write(a);
+endif
+end

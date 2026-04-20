@@ -9,6 +9,10 @@
 #define MAX_SYMS  200
 #define MAX_CODE  500
 #define MAX_LINE  256
+#define MAX_LOOPS 50
+
+extern int syntaxErrorCount;
+extern int semanticErrorCount;
 
 /* expression stack */
 static char expr_stack[MAX_STACK][MAX_TEXT];
@@ -28,6 +32,10 @@ static int temp_num = 0;
 /* while support placeholder */
 static int tmp_open = 0;
 
+static int loop_stack[MAX_LOOPS];
+static int loop_top = -1;
+static int building_while_condition = 0;
+
 /* ---------- helpers ---------- */
 static void push_expr(const char *text);
 static int pop_expr(char *out);
@@ -35,6 +43,9 @@ static int symbol_exists(const char *name);
 static void add_symbol(const char *name);
 static void add_code(const char *line);
 static void reset_codegen(void);
+
+static int is_condition_operator(const char *op);
+static void insert_code_line(int index, const char *line);
 
 /* ---------- helper implementations ---------- */
 static void push_expr(const char *text)
@@ -113,6 +124,39 @@ static void reset_codegen(void)
     code_count = 0;
     temp_num = 0;
     tmp_open = 0;
+    loop_top = -1;
+    building_while_condition = 0;
+}
+
+static void insert_code_line(int index, const char *line)
+{
+    int i;
+
+    if (code_count >= MAX_CODE || index < 0 || index > code_count)
+    {
+        return;
+    }
+
+    for (i = code_count; i > index; i--)
+    {
+        strcpy(code_lines[i], code_lines[i - 1]);
+    }
+
+    strncpy(code_lines[index], line, MAX_LINE - 1);
+    code_lines[index][MAX_LINE - 1] = '\0';
+    code_count++;
+}
+
+static int is_condition_operator(const char *op)
+{
+    return (strcmp(op, "==") == 0 ||
+            strcmp(op, "!=") == 0 ||
+            strcmp(op, "<") == 0 ||
+            strcmp(op, "<=") == 0 ||
+            strcmp(op, ">") == 0 ||
+            strcmp(op, ">=") == 0 ||
+            strcmp(op, "&&") == 0 ||
+            strcmp(op, "||") == 0);
 }
 
 /* ---------- required action routines ---------- */
@@ -153,7 +197,9 @@ void finish(void)
 
     fprintf(cFile, "return 0;\n");
     fprintf(cFile, "}\n");
-    fprintf(cFile, "/* PROGRAMED COMPILED WITH NO ERRORS. */\n");
+    if (lexicalErrorCount == 0 && syntaxErrorCount == 0 && semanticErrorCount == 0){
+        fprintf(cFile, "/* PROGRAMED COMPILED WITH NO ERRORS. */\n");
+    }
 }
 
 void process_id(const char *id)
@@ -218,14 +264,22 @@ void gen_infix(void)
     if (check && !pop_expr(left)) check = 0;
 
     if(check){
-        temp_num++;
-        sprintf(temp, "Temp%d", temp_num);
-        add_symbol(temp);
+    	
+    	if (building_while_condition || is_condition_operator(op)){
+       		snprintf(temp, sizeof(temp), "%s %s %s", left, op, right);
+        	push_expr(temp);
+    	} else {
+		
+    
+        	temp_num++;
+        	sprintf(temp, "Temp%d", temp_num);
+        	add_symbol(temp);
 
-        sprintf(line, "%s = %s %s %s;", temp, left, op, right);
-        add_code(line);
+        	sprintf(line, "%s = %s %s %s;", temp, left, op, right);
+        	add_code(line);
 
-        push_expr(temp);
+        	push_expr(temp);
+		}
     }
 }
 
@@ -270,12 +324,58 @@ void write_expr(void)
     }
 }
 
+void begin_if(void)
+{
+    char cond[MAX_TEXT];
+    char line[MAX_LINE];
+
+    if (pop_expr(cond))
+    {
+        snprintf(line, sizeof(line), "if (%s) {", cond);
+        add_code(line);
+    }
+}
+
+void emit_else(void)
+{
+    add_code("} else {");
+}
+
+void end_if(void)
+{
+    add_code("}");
+}
+
 void open_tmp(void)
 {
     tmp_open = 1;
+    building_while_condition = 1;
+
+    if (loop_top < MAX_LOOPS - 1)
+    {
+        loop_top++;
+        loop_stack[loop_top] = code_count;
+    }
 }
 
 void write_temp(void)
 {
-    tmp_open = 0;
+    char cond[MAX_TEXT];
+
+    if (loop_top >= 0 && pop_expr(cond))
+    {
+        int start = loop_stack[loop_top];
+        char line[MAX_LINE];
+
+        snprintf(line, sizeof(line), "while (%s) {", cond);
+        insert_code_line(start, line);
+        add_code("}");
+        loop_top--;
+    }
+
+    if (loop_top < 0)
+    {
+        tmp_open = 0;
+        building_while_condition = 0;
+    }
 }

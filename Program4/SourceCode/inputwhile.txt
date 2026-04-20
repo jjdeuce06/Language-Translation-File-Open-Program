@@ -1,8 +1,5 @@
 begin
 while (a < b)
-if (a = c) then
-write(a);
-endif
 a := a + 1;
 endwhile
 end

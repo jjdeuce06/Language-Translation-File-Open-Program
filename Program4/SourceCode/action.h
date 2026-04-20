@@ -23,4 +23,10 @@ void gen_condition(void);
 void open_tmp(void);
 void write_temp(void);
 
+/*If Hooks*/
+void begin_if(void);
+void emit_else(void);
+void end_if(void);
+
+
 #endif

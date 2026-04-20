@@ -245,10 +245,19 @@ int statement(char *buffer)
         result = match(IF, buffer) &&
                  match(LPAREN, buffer) &&
                  condition(buffer) &&
-                 match(RPAREN, buffer) &&
-                 match(THEN, buffer) &&
-                 statement_list(buffer) &&
-                 if_tail(buffer);
+                 match(RPAREN, buffer);
+
+        if (result)
+        {
+            begin_if();
+        }
+
+        if (result)
+        {
+            result = match(THEN, buffer) &&
+                     statement_list(buffer) &&
+                     if_tail(buffer);
+        }
     }
     else if (t == WHILE)
     {
@@ -298,13 +307,25 @@ int if_tail(char *buffer)
 
     if (t == ELSE)
     {
+        emit_else();
+
         result = match(ELSE, buffer) &&
                  statement_list(buffer) &&
                  match(ENDIF, buffer);
+
+        if (result)
+        {
+            end_if();
+        }
     }
     else if (t == ENDIF)
     {
         result = match(ENDIF, buffer);
+
+        if (result)
+        {
+            end_if();
+        }
     }
     else
     {
